@@ -1,27 +1,14 @@
 # Lab 6 — Integration Ecosystem (Model, Do Not Build)
 
-**R:** SA · **A:** SA · **C:** Sec, Ops
+Current style. No Guide, no diagram header block, no C4/ArchiMate viewpoint claim — those start at Lab 7 / Lab 8 / Lab 9. Drawn by SA, reviewed by Sec/Ops.
 
----
-
-```
-Title:      Payment Gateway Integration Ecosystem
-Viewpoint:  C4 Container (integration overlay)
-Layer(s):   Application
-As-Is | To-Be | Transition:  To-Be
-Owner:      Role SA  Name Nguyễn Quang Huy
-RACI:       R SA  A SA  C Sec, Ops  I Dev, Test
-Version:    v1.0  Date 2026-08-20  Status Draft
-Legend:      ─── sync; ═══ async; [label] = protocol + product label
-RACI legend: R = draws · A = approves · C = consulted · I = informed
-Scope:      in-scope: integration patterns from I-8 / out-of-scope: internal component logic
-```
+Scope: integration patterns from Lab 1 I-8. Out of scope: internal component logic (that is Lab 3 / Lab 9 Component / Lab 10).
 
 ---
 
 ## 1. Ecosystem Overview
 
-Gateway, event bus, and adapter are drawn as **C4 Containers** (from I-4). Product names appear as **labels only** — nothing is installed.
+Boxes are I-4 containers and I-3 externals, drawn plainly (no C4/ArchiMate notation). Product names appear as **labels only** — nothing is installed.
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────────────┐
@@ -31,16 +18,16 @@ Gateway, event bus, and adapter are drawn as **C4 Containers** (from I-4). Produ
 │  │   API Gateway    │  sync   │     Payment Orchestrator      │                 │
 │  │  [label: Nginx   │────────▶│     (core logic, state        │                 │
 │  │   or Kong]       │ HTTP/   │      machine, fraud           │                 │
-│  │                  │ gRPC    │      orchestration)            │                 │
+│  │                  │ gRPC    │      module in-process)        │                 │
 │  └────────┬─────────┘         └───────┬───────┬───────┬───────┘                 │
 │           │                           │       │       │                         │
 │           │                     sync  │  sync │       │ sync                    │
 │           │                     Redis │  SQL  │       │ HTTP                    │
 │           │                           │       │       │                         │
 │           │                    ┌──────▼──┐  ┌─▼──────┐│                         │
-│           │                    │Idempot- │  │Payment ││   (fraud module runs    │
-│           │                    │ency     │  │Store   ││   in-process inside     │
-│           │                    │Store    │  │(Write) ││   Payment Orchestrator) │
+│           │                    │Idempot- │  │Payment ││                         │
+│           │                    │ency     │  │Store   ││                         │
+│           │                    │Store    │  │(Write) ││                         │
 │           │                    │[Redis   │  │[Post-  ││                         │
 │           │                    │ 7.x]    │  │greSQL] ││                         │
 │           │                    └─────────┘  └────────┘│                         │
@@ -112,6 +99,8 @@ Gateway, event bus, and adapter are drawn as **C4 Containers** (from I-4). Produ
 | **Async** | Webhook delivery | Webhook Service → Merchant Platform | HTTPS POST, HMAC-SHA256, 10s timeout | — |
 | **Sync** | Scheduled SQL | Expiry Job → Payment Store | PostgreSQL (batch update) | cron |
 
+The fraud rule check is an in-process call inside `Payment Orchestrator` (Lab 1 I-4 note) — not a container-to-container edge, so it has no row here.
+
 ---
 
 ## 3. Edge Labels Summary
@@ -167,7 +156,6 @@ Authentication and rate limiting reside on the **API Gateway** container. There 
 | Docker installed or running | ✗ Not done |
 | Kong / Nginx actually deployed | ✗ Not done |
 | Kafka / SQS cluster stood up | ✗ Not done |
-| Keycloak / IAM realm configured | ✗ Not done |
 | Redis cluster provisioned | ✗ Not done |
 | PostgreSQL instance running | ✗ Not done |
 | Any source code or automated tests | ✗ Not done |

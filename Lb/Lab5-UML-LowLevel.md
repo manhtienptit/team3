@@ -1,35 +1,16 @@
-# Lab 5 — Low-Level Design (UML)
+# Lab 5 — UML for Named Use Cases (I-11)
 
-**R:** Dev (sequence) · Test (activity/state) · **A:** SA (sequence) · BA (activity/state)
+Current style. No Guide, no diagram header block, no RACI template — those start at Lab 7 / Lab 8. Drawn by Dev (sequences) and Test (activity, state), reviewed by SA/BA.
+
+Participants are drawn only from Lab 1's I-2 (actors), I-3 (externals), and I-4 (containers). The fraud module runs in-process inside `Payment Orchestrator` — it is not a separate participant, per Lab 1 I-4.
 
 ---
 
-## 1. UML Sequence — Authorize Payment
+## 1. Sequence — Authorize Payment (I-11)
 
-```
-Title:      Authorize Payment — Happy Path + Exception
-Viewpoint:  UML Sequence
-Layer(s):   Delivery
-As-Is | To-Be | Transition:  To-Be
-Owner:      Role Dev  Name Kim Đức Minh
-RACI:       R Dev  A SA  C Test, BA  I Ops
-Version:    v1.0  Date 2026-08-20  Status Draft
-Legend:      →  sync call; --→  async; alt = exception branch
-RACI legend: R = draws · A = approves · C = consulted · I = informed
-Scope:      in-scope: US Authorize Payment / out-of-scope: capture, void, refund
-```
+In scope: the `Authorize Payment` use case (happy path + fraud block, idempotency duplicate, concurrent same-key, and acquirer-timeout exceptions). Out of scope: capture, void, refund.
 
-### Participants (⊆ I-4 containers + I-3 externals)
-
-- Merchant Platform
-- API Gateway
-- Payment Orchestrator (fraud module evaluates in-process — not a separate participant)
-- Idempotency Store
-- AcquirerHost
-- Payment Store
-- Message Queue
-
-### Sequence
+Participants: `Merchant Platform`, `API Gateway`, `Payment Orchestrator`, `Idempotency Store`, `AcquirerHost`, `Payment Store`, `Message Queue`, `Webhook Service`.
 
 ```plantuml
 @startuml
@@ -40,6 +21,7 @@ participant "Idempotency Store" as Redis
 participant "AcquirerHost" as Acquirer
 database "Payment Store" as PG
 queue "Message Queue" as MQ
+participant "Webhook Service" as Webhook
 
 Merchant -> APIGW : POST /v1/payments\n{amount, card, idempotency_key, capture:false}
 APIGW -> APIGW : Validate input\n(amount 10K–500M, Luhn, expiry)
@@ -74,7 +56,7 @@ else new key (miss)
 end
 
 Orch -> Orch : evaluate fraud rules (in-process)\n(card, amount, merchant)
-note right of Orch : 5 rules, < 50ms\nFRAUD-01→05\nFirst-block-wins
+note right of Orch : 5 rules, < 50ms\nFRAUD-01→05, first-block-wins
 
 alt fraud block (any rule triggers)
     Orch -> PG : INSERT Payment(status=Declined,\ndecline_reason=fraud_rule, fraud_rule_id)
@@ -110,6 +92,8 @@ else issuer approves
     Orch -> MQ : publish payment.authorized
     Orch --> APIGW : 201 {status: "authorized", id, auth_code}
     APIGW --> Merchant : 201 Authorized
+    MQ -> Webhook : consume payment.authorized (async)
+    Webhook -> Merchant : POST webhook, HMAC-SHA256 (async)
 end
 
 @enduml
@@ -117,32 +101,11 @@ end
 
 ---
 
-## 2. UML Sequence — Capture Payment
+## 2. Sequence — Capture Payment (I-11)
 
-```
-Title:      Capture Payment — Happy Path + Exception
-Viewpoint:  UML Sequence
-Layer(s):   Delivery
-As-Is | To-Be | Transition:  To-Be
-Owner:      Role Dev  Name Kim Đức Minh
-RACI:       R Dev  A SA  C Test, BA  I Ops
-Version:    v1.0  Date 2026-08-20  Status Draft
-Legend:      →  sync call; alt = exception branch
-RACI legend: R = draws · A = approves · C = consulted · I = informed
-Scope:      in-scope: US Capture Payment / out-of-scope: authorize, void, refund
-```
+In scope: the `Capture Payment` use case (happy path + auth expired, amount exceeds, invalid state, partial capture). Out of scope: authorize, void, refund.
 
-### Participants
-
-- Merchant Platform
-- API Gateway
-- Payment Orchestrator
-- Idempotency Store
-- Payment Store
-- AcquirerHost
-- Message Queue
-
-### Sequence
+Participants: `Merchant Platform`, `API Gateway`, `Payment Orchestrator`, `Idempotency Store`, `Payment Store`, `AcquirerHost`, `Message Queue`.
 
 ```plantuml
 @startuml
@@ -181,16 +144,16 @@ else amount > authorizedAmount
     APIGW --> Merchant : 400
 else valid (Authorized + not expired + amount ≤ auth)
     Orch -> Acquirer : capture(payment_ref, amount)\ntimeout=30s
-    
+
     alt acquirer approves capture
         Acquirer --> Orch : CAPTURE_OK
         Orch -> PG : UPDATE Payment SET status=Captured,\ncapturedAmount={amount}
-        
+
         alt partial capture (amount < authorized)
             Orch -> Acquirer : void_remainder(payment_ref, authorized - amount)
             Orch -> PG : UPDATE remainderVoided=true
         end
-        
+
         Orch -> Redis : SET idempotency:{key} {response} EX 172800
         Orch -> MQ : publish payment.captured
         Orch --> APIGW : 200 {status: "captured"}
@@ -207,32 +170,11 @@ end
 
 ---
 
-## 3. UML Sequence — Refund Payment
+## 3. Sequence — Refund Payment (I-11)
 
-```
-Title:      Refund Payment — Happy Path + Exception
-Viewpoint:  UML Sequence
-Layer(s):   Delivery
-As-Is | To-Be | Transition:  To-Be
-Owner:      Role Dev  Name Kim Đức Minh
-RACI:       R Dev  A SA  C Test, BA  I Ops
-Version:    v1.0  Date 2026-08-20  Status Draft
-Legend:      →  sync call; alt = exception branch
-RACI legend: R = draws · A = approves · C = consulted · I = informed
-Scope:      in-scope: US Refund Payment / out-of-scope: authorize, capture, void
-```
+In scope: the `Refund Payment` use case (happy path + max refunds, refund window expired, amount exceeds, invalid state). Out of scope: authorize, capture, void.
 
-### Participants
-
-- Merchant Platform
-- API Gateway
-- Payment Orchestrator
-- Idempotency Store
-- Payment Store
-- AcquirerHost
-- Message Queue
-
-### Sequence
+Participants: `Merchant Platform`, `API Gateway`, `Payment Orchestrator`, `Idempotency Store`, `Payment Store`, `AcquirerHost`, `Message Queue`.
 
 ```plantuml
 @startuml
@@ -274,11 +216,11 @@ else capturedAt + 180d < now
     APIGW --> Merchant : 409
 else valid (Captured + amount ≤ remaining + count < 10 + ≤ 180d)
     Orch -> Acquirer : refund(payment_ref, amount)\ntimeout=30s
-    
+
     alt acquirer approves refund
         Acquirer --> Orch : REFUND_OK
         Orch -> PG : UPDATE Payment SET\nrefundedAmount += amount,\nrefundCount += 1
-        
+
         alt refundedAmount = capturedAmount (full refund)
             Orch -> PG : UPDATE status = Refunded
             Orch -> MQ : publish payment.refunded
@@ -286,7 +228,7 @@ else valid (Captured + amount ≤ remaining + count < 10 + ≤ 180d)
             Orch -> PG : (status remains Captured)
             Orch -> MQ : publish payment.refunded (partial)
         end
-        
+
         Orch -> Redis : SET idempotency:{key} {response} EX 172800
         Orch --> APIGW : 200 {status, refundedAmount}
         APIGW --> Merchant : 200
@@ -301,20 +243,9 @@ end
 
 ---
 
-## 4. UML Activity — Payment Authorization Process
+## 4. Activity — Payment Authorization Process
 
-```
-Title:      Payment Authorization Activity
-Viewpoint:  UML Activity
-Layer(s):   Delivery
-As-Is | To-Be | Transition:  To-Be
-Owner:      Role Test  Name Trần Quốc Đạt
-RACI:       R Test  A BA  C Dev, SA  I Ops
-Version:    v1.0  Date 2026-08-20  Status Draft
-Legend:      ◆ = decision; [guard] = CON.* constraint
-RACI legend: R = draws · A = approves · C = consulted · I = informed
-Scope:      in-scope: authorization happy path + decisions
-```
+Happy path plus decisions for the `Authorize Payment` use case, shown as a single flow.
 
 ```plantuml
 @startuml
@@ -350,7 +281,7 @@ endif
 note right: FRAUD-01→05\n< 50ms [CON.3]
 
 if (any rule blocks?) then (block [CON.3])
-  :Payment → Declined\n(fraud_rule, FRAUD-XX);
+  :Payment → Declined\n(fraud_rule, FRAUD-01→05);
   :Publish payment.declined;
   stop
 else (pass)
@@ -388,28 +319,16 @@ endif
 
 ---
 
-## 5. UML State Machine — Payment Object
+## 5. State Machine — Payment
 
-```
-Title:      Payment State Machine
-Viewpoint:  UML State Machine
-Layer(s):   Delivery
-As-Is | To-Be | Transition:  To-Be
-Owner:      Role Test  Name Trần Quốc Đạt
-RACI:       R Test  A BA  C Dev, SA  I Ops
-Version:    v1.0  Date 2026-08-20  Status Draft
-Legend:      → transition; [guard]; terminal = double-circle
-RACI legend: R = draws · A = approves · C = consulted · I = informed
-Scope:      in-scope: Payment object lifecycle / out-of-scope: Webhook Event, Idempotency Entry
-```
-
-**Object:** Payment (one object per state machine)
+One object per state machine: `Payment`. States and transitions match Lab 1 I-6 exactly, including the Direct Charge transition.
 
 ```plantuml
 @startuml
 [*] --> Pending : request received
 
-Pending --> Authorized : issuer approves
+Pending --> Authorized : issuer approves (capture:false)
+Pending --> Captured : issuer approves + immediate capture\n(Direct Charge, capture:true)
 Pending --> Declined : issuer declines OR fraud blocks
 Pending --> Failed : acquirer timeout (30s + 1 retry exhausted)\nOR system error
 
@@ -446,27 +365,28 @@ end note
 
 ---
 
-## 6. G6 Checklist — Test Coverage
+## 6. Test Coverage Note
 
-### 6.1 State Transitions → Planned Tests
+### 6.1 State transitions → planned tests
 
-| # | From | To | Trigger | Planned Test |
-|---|------|----|---------|--------------| 
+| # | From | To | Trigger | Planned test |
+|---|------|----|---------|---------------|
 | T1 | Pending | Authorized | Issuer approves | Verify status=Authorized, auth_code set, expiresAt=+7d |
-| T2 | Pending | Declined | Fraud blocks | Verify Declined, fraud_rule_id set, no acquirer call |
-| T3 | Pending | Declined | Issuer declines | Verify Declined, reason_code from issuer |
-| T4 | Pending | Failed | Acquirer timeout exhausted | Verify Failed after 30s+retry |
-| T5 | Authorized | Captured | Capture succeeds | Verify Captured, capturedAmount set |
-| T6 | Authorized | Voided | Void succeeds | Verify Voided, terminal |
-| T7 | Authorized | Failed | Expiry job (7d elapsed) | Verify Failed, decline_reason=authorization_expired |
-| T8 | Captured | Refunded | Full refund | Verify Refunded when refundedAmount=capturedAmount |
-| T9 | Captured | Captured | Partial refund | Verify stays Captured, refundedAmount += amount |
-| T10 | Any invalid | — (rejected) | Invalid transition attempt | Verify 409 invalid_state_transition |
+| T2 | Pending | Captured | Direct Charge (immediate capture) | Verify status=Captured, no visible intermediate Authorized |
+| T3 | Pending | Declined | Fraud blocks | Verify Declined, fraud_rule_id set, no acquirer call |
+| T4 | Pending | Declined | Issuer declines | Verify Declined, reason_code from issuer |
+| T5 | Pending | Failed | Acquirer timeout exhausted | Verify Failed after 30s + retry |
+| T6 | Authorized | Captured | Capture succeeds | Verify Captured, capturedAmount set |
+| T7 | Authorized | Voided | Void succeeds | Verify Voided, terminal |
+| T8 | Authorized | Failed | Expiry job (7d elapsed) | Verify Failed, decline_reason=authorization_expired |
+| T9 | Captured | Refunded | Full refund | Verify Refunded when refundedAmount=capturedAmount |
+| T10 | Captured | Captured | Partial refund | Verify stays Captured, refundedAmount += amount |
+| T11 | Any invalid | — (rejected) | Invalid transition attempt | Verify 409 invalid_state_transition |
 
-### 6.2 Sequence Alt Fragments → Planned Tests
+### 6.2 Sequence alt fragments → planned tests
 
-| # | Use Case | Alt Fragment | Planned Test |
-|---|----------|--------------|--------------|
+| # | Use case | Alt fragment | Planned test |
+|---|----------|--------------|---------------|
 | A1 | Authorize | Fraud block (FRAUD-01→05) | Verify Declined, no acquirer call, fraud_rule_id |
 | A2 | Authorize | Idempotency hit | Verify cached response returned, no external calls |
 | A3 | Authorize | Idempotency concurrent (5s timeout) | Verify 409 idempotency_conflict |
@@ -482,16 +402,6 @@ end note
 | A13 | Refund | Amount exceeds refundable | Verify 400 amount_exceeds_refundable |
 | A14 | Refund | Status ≠ Captured | Verify 409 invalid_state_transition |
 
-### 6.3 Participant = C4 Container Name Verification
+### 6.3 Participant check
 
-| Sequence Lifeline | Matches I-4 / I-2 / I-3? | String |
-|-------------------|---------------------------|--------|
-| Merchant Platform | I-3 External | ✓ Merchant Platform |
-| API Gateway | I-4 Container | ✓ API Gateway |
-| Payment Orchestrator | I-4 Container | ✓ Payment Orchestrator |
-| Idempotency Store | I-4 Container | ✓ Idempotency Store |
-| AcquirerHost | I-3 External | ✓ AcquirerHost |
-| Payment Store | I-4 Container | ✓ Payment Store |
-| Message Queue | I-4 Container | ✓ Message Queue |
-
-**All participants ⊆ Lab 1 name-identity index.** ✓
+Every sequence lifeline is an I-2/I-3/I-4 name: `Merchant Platform`, `API Gateway`, `Payment Orchestrator`, `Idempotency Store`, `AcquirerHost`, `Payment Store`, `Message Queue`, `Webhook Service`. No `Fraud Engine` participant — fraud evaluation is a self-call on `Payment Orchestrator`.
