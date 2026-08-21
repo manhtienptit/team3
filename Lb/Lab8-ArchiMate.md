@@ -1,7 +1,7 @@
 # Lab 8 — ArchiMate Views (Named Set)
 
-**R:** EA (Motivation/Strategy) · BA (Process) · SA (Application Cooperation) · Ops/SA (Technology)  
-**A:** Owner (Motivation, Process)
+**R:** EA (Motivation/Strategy) · BA (Process) · SA (Application Cooperation) · Ops (Technology)  
+**A:** Owner (Motivation, Process) · EA (Application Cooperation) · SA (Technology)
 
 ---
 
@@ -97,7 +97,7 @@ Title:      Payment Gateway — Authorization Business Process
 Viewpoint:  ArchiMate Business Process
 Layer(s):   Business
 As-Is | To-Be | Transition:  To-Be
-Owner:      Role BA  Name Member (BA role)
+Owner:      Role BA  Name Ninh Mạnh Tiến
 RACI:       R BA  A Owner  C SA, Sec  I Dev, Test
 Version:    v1.0  Date 2026-08-20  Status Draft
 Legend:      → flow; ◆ decision (CON.* labeled); ○ event
@@ -184,7 +184,7 @@ Viewpoint:  ArchiMate Application Cooperation
 Layer(s):   Application
 As-Is | To-Be | Transition:  To-Be
 Owner:      Role SA  Name Nguyễn Quang Huy
-RACI:       R SA  A Owner  C DA, Sec  I Dev, Test
+RACI:       R SA  A EA  C DA, Sec  I Dev, Test
 Version:    v1.0  Date 2026-08-20  Status Draft
 Legend:      ─── flow; names = I-4 containers (same strings as C4 Container)
 RACI legend: R = draws · A = approves · C = consulted · I = informed
@@ -249,7 +249,7 @@ Title:      Payment Gateway — Technology / Deployment
 Viewpoint:  ArchiMate Technology
 Layer(s):   Technology
 As-Is | To-Be | Transition:  To-Be
-Owner:      Role Ops  Name Member (Ops role)
+Owner:      Role Ops  Name Nguyễn Quang Huy
 RACI:       R Ops  A SA  C Sec  I Dev, Test
 Version:    v1.0  Date 2026-08-20  Status Draft
 Legend:      ─── deployed on; locations from I-9; no forbidden path
@@ -273,7 +273,7 @@ Scope:      in-scope: deployment locations (I-9) / out-of-scope: channel writing
 │  ┌─────────────────────▼───────────────────┐                                │
 │  │  API Gateway                            │                                │
 │  │  Payment Orchestrator (incl. fraud      │                                │
-│  module, in-process)                    │                                │
+│  │  module, in-process)                    │                                │
 │  │  [stateless, horizontal scaling]        │                                │
 │  └──────┬──────────────┬──────────────┬────┘                                │
 │         │              │              │                                      │
