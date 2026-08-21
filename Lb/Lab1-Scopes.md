@@ -34,7 +34,7 @@
 
 | Name (simulated) | Responsibility |
 |------------------|----------------|
-| VietinBank Acquirer | Routes authorization/capture/void/refund to card network; returns approve/decline |
+| Vietcombank Acquirer | Routes authorization/capture/void/refund to card network; returns approve/decline |
 | NAPAS Switch | Domestic card network connecting acquirer to issuing bank (Visa/MC routing) |
 | Issuing Bank | Customer's bank; approves or declines the transaction; holds/releases funds |
 
@@ -64,8 +64,8 @@
 2. API Gateway validates input (amount 10K–500M VND, Luhn, card expiry)
 3. Payment Orchestrator checks Idempotency Store (Redis) — duplicate returns cached response
 4. Fraud Engine evaluates 5 rules (velocity, high-value, merchant velocity, BIN country, daily cumulative)
-5. Payment Orchestrator routes to VietinBank Acquirer (30s timeout, 1 retry after 5s)
-6. VietinBank Acquirer → NAPAS → Issuing Bank → approve/decline
+5. Payment Orchestrator routes to Vietcombank Acquirer (30s timeout, 1 retry after 5s)
+6. Vietcombank Acquirer → NAPAS → Issuing Bank → approve/decline
 7. Payment Orchestrator persists Payment (status: Authorized, expiresAt: now + 7d) to Payment Store
 8. Payment Orchestrator publishes payment.authorized event to Message Queue
 9. Webhook Service consumes event, signs HMAC-SHA256, delivers POST to Merchant (10s timeout)
@@ -76,7 +76,7 @@
 - Idempotency check must NEVER occur after fraud evaluation or acquirer call
 - Fraud Engine must NEVER evaluate on capture, void, or refund paths
 - Webhook delivery must NEVER block the synchronous payment API response
-- Payment query must NEVER call VietinBank Acquirer or NAPAS
+- Payment query must NEVER call Vietcombank Acquirer or NAPAS
 - A single Payment must NEVER have more than 10 partial refunds
 - Authorization hold must NEVER exceed 7 calendar days without expiring to Failed
 
@@ -121,7 +121,7 @@
 | Idempotency Entry | Key → cached HTTP response | Idempotency Store |
 | Webhook Event | Delivery status, retry count, next attempt | Payment Store |
 | Fraud Counters | Card velocity, merchant velocity, daily cumulative | Idempotency Store (Redis) |
-| Card Authorization | Approve/decline decision | Issuing Bank (via VietinBank Acquirer) |
+| Card Authorization | Approve/decline decision | Issuing Bank (via Vietcombank Acquirer) |
 
 ---
 
@@ -129,7 +129,7 @@
 
 | Pattern | Mechanism | Example on your landscape |
 |---------|-----------|---------------------------|
-| Sync | HTTPS REST, 30s timeout, 1 retry after 5s | Payment Orchestrator → VietinBank Acquirer |
+| Sync | HTTPS REST, 30s timeout, 1 retry after 5s | Payment Orchestrator → Vietcombank Acquirer |
 | Sync | Internal HTTP/gRPC | API Gateway → Payment Orchestrator |
 | Sync | Redis GET/SET/BLPOP | Payment Orchestrator → Idempotency Store |
 | Async | Message queue (Kafka/SQS), at-least-once | Payment Orchestrator → Message Queue → Webhook Service |
@@ -149,7 +149,7 @@
 | Worker Tier (2+ nodes) | Webhook Service |
 | Scheduler | Expiry Job (hourly cron) |
 
-**Forbidden path:** Webhook Service must NOT write directly to Payment Store. Merchant must NOT query VietinBank Acquirer directly.
+**Forbidden path:** Webhook Service must NOT write directly to Payment Store. Merchant must NOT query Vietcombank Acquirer directly.
 
 ---
 
@@ -164,7 +164,7 @@
 | CON.5 | Maximum 10 partial refunds per payment within 180 days | Refund request exceeding count/window → 400/409 |
 | CON.6 | Acquirer timeout 30s + 1 retry after 5s | Exhausted retries → Failed; same transaction reference (no duplicate) |
 | CON.7 | Webhook: 7 attempts (1m/5m/30m/2h/12h/24h), HMAC-SHA256, 30d TTL | After max retries → failed_delivery; event queryable 30 days |
-| CON.8 | Single acquirer: VietinBank via NAPAS (domestic Visa/MC) | No acquirer routing logic; BIN country ≠ VN → fraud block |
+| CON.8 | Single acquirer: Vietcombank via NAPAS (domestic Visa/MC) | No acquirer routing logic; BIN country ≠ VN → fraud block |
 
 ---
 

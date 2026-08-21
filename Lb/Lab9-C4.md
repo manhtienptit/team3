@@ -29,7 +29,7 @@ C4Context
 
   System(gateway, "Payment Gateway", "Processes authorization, capture, void, refund for domestic card transactions (VND only)")
 
-  System_Ext(acquirer, "VietinBank Acquirer", "Routes transactions to card network; returns approve/decline")
+  System_Ext(acquirer, "Vietcombank Acquirer", "Routes transactions to card network; returns approve/decline")
   System_Ext(napas, "NAPAS Switch", "Domestic card network connecting acquirer to issuing bank")
   System_Ext(issuer, "Issuing Bank", "Customer's bank; approves or declines; holds/releases funds")
 
@@ -46,7 +46,7 @@ C4Context
 |---------|------|----------------------|
 | Person | Actor | Merchant |
 | System-in-focus | Internal | Payment Gateway |
-| External System | External | VietinBank Acquirer |
+| External System | External | Vietcombank Acquirer |
 | External System | External | NAPAS Switch |
 | External System | External | Issuing Bank |
 
@@ -56,8 +56,8 @@ C4Context
 |------|----|-------------|
 | Merchant | Payment Gateway | Submits payment requests (auth, capture, void, refund); queries payment status |
 | Payment Gateway | Merchant | Delivers webhook events on status change |
-| Payment Gateway | VietinBank Acquirer | Sends authorization, capture, void, refund requests |
-| VietinBank Acquirer | NAPAS Switch | Routes card transactions |
+| Payment Gateway | Vietcombank Acquirer | Sends authorization, capture, void, refund requests |
+| Vietcombank Acquirer | NAPAS Switch | Routes card transactions |
 | NAPAS Switch | Issuing Bank | Forwards authorization/capture/void/refund |
 
 ### NOT on Context (forbidden)
@@ -108,7 +108,7 @@ C4Container
     Container(cron, "Expiry Job", "Scheduled hourly", "Transitions expired auths (7d) to Failed")
   }
 
-  System_Ext(acquirer, "VietinBank Acquirer", "Card transaction processing")
+  System_Ext(acquirer, "Vietcombank Acquirer", "Card transaction processing")
   System_Ext(napas, "NAPAS Switch", "Domestic card network")
   System_Ext(issuer, "Issuing Bank", "Approve/decline")
 
@@ -151,14 +151,14 @@ C4Container
 | 3 | API Gateway | Query Store | SQL | Sync |
 | 4 | Payment Orchestrator | Idempotency Store | Redis GET/SET/BLPOP | Sync |
 | 5 | Payment Orchestrator | Fraud Engine | In-process call | Sync |
-| 6 | Payment Orchestrator | VietinBank Acquirer | HTTPS (30s + 1 retry) | Sync |
+| 6 | Payment Orchestrator | Vietcombank Acquirer | HTTPS (30s + 1 retry) | Sync |
 | 7 | Payment Orchestrator | Payment Store | SQL | Sync |
 | 8 | Payment Orchestrator | Message Queue | Publish event | Async |
 | 9 | Message Queue | Webhook Service | Consume event | Async |
 | 10 | Webhook Service | Merchant | HTTPS POST (HMAC, 10s) | Async |
 | 11 | Expiry Job | Payment Store | SQL batch | Sync |
 | 12 | Expiry Job | Message Queue | Publish event | Async |
-| 13 | VietinBank Acquirer | NAPAS Switch | ISO 8583 | Sync |
+| 13 | Vietcombank Acquirer | NAPAS Switch | ISO 8583 | Sync |
 | 14 | NAPAS Switch | Issuing Bank | ISO 8583 | Sync |
 
 ### NOT on Container (forbidden)
@@ -217,7 +217,7 @@ Scope:      in-scope: internals of Payment Orchestrator ONLY / out-of-scope: oth
 │  └──────────┬──────────┘                                                    │
 │             │                                                               │
 │  ┌──────────▼──────────┐         ┌──────────────────────┐                   │
-│  │  Acquirer Client    │────────▶│ [VietinBank Acquirer] │ (external)       │
+│  │  Acquirer Client    │────────▶│ [Vietcombank Acquirer] │ (external)       │
 │  │ (30s timeout, retry)│         │  HTTPS — black box    │                   │
 │  └──────────┬──────────┘         └──────────────────────┘                   │
 │             │                                                               │
@@ -243,7 +243,7 @@ Scope:      in-scope: internals of Payment Orchestrator ONLY / out-of-scope: oth
 | Idempotency Manager | Check/lock/cache via Idempotency Store; 48h TTL, 5s wait (CON.2) |
 | Fraud Gate | Orchestrates Fraud Engine evaluation; auth path only (CON.3) |
 | State Machine Engine | Enforces valid transitions; rejects invalid with 409 |
-| Acquirer Client | HTTP communication with VietinBank; 30s timeout + 1 retry (CON.6) |
+| Acquirer Client | HTTP communication with Vietcombank; 30s timeout + 1 retry (CON.6) |
 | Persistence Manager | Writes payment records to Payment Store |
 | Event Publisher | Publishes events to Message Queue (within 1s of status change) |
 
@@ -253,7 +253,7 @@ Scope:      in-scope: internals of Payment Orchestrator ONLY / out-of-scope: oth
 |-----------|------|
 | Idempotency Store | I-4 Container |
 | Fraud Engine | I-4 Container |
-| VietinBank Acquirer | I-3 External |
+| Vietcombank Acquirer | I-3 External |
 | Payment Store | I-4 Container |
 | Message Queue | I-4 Container |
 

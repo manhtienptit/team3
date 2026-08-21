@@ -39,7 +39,7 @@ box "Payment Orchestrator" #LightBlue
 end box
 participant "Idempotency Store" as Redis
 participant "Fraud Engine" as FraudEng
-participant "VietinBank Acquirer" as Acquirer
+participant "Vietcombank Acquirer" as Acquirer
 database "Payment Store" as PG
 queue "Message Queue" as MQ
 
@@ -178,7 +178,7 @@ box "Payment Orchestrator" #LightBlue
   participant "Event Publisher" as EventPub
 end box
 participant "Idempotency Store" as Redis
-participant "VietinBank Acquirer" as Acquirer
+participant "Vietcombank Acquirer" as Acquirer
 database "Payment Store" as PG
 queue "Message Queue" as MQ
 
@@ -292,7 +292,7 @@ box "Payment Orchestrator" #LightBlue
   participant "Event Publisher" as EventPub
 end box
 participant "Idempotency Store" as Redis
-participant "VietinBank Acquirer" as Acquirer
+participant "Vietcombank Acquirer" as Acquirer
 database "Payment Store" as PG
 queue "Message Queue" as MQ
 
@@ -407,7 +407,7 @@ See [Lab5-UML-LowLevel.md](Lab5-UML-LowLevel.md) §5 for full diagram.
 | Payment Orchestrator (box) | I-4 | Container (drilled to components) |
 | Idempotency Store | I-4 | Container |
 | Fraud Engine | I-4 | Container (auth sequences only) |
-| VietinBank Acquirer | I-3 | External System |
+| Vietcombank Acquirer | I-3 | External System |
 | Payment Store | I-4 | Container |
 | Message Queue | I-4 | Container |
 

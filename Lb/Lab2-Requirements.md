@@ -49,10 +49,10 @@ Each requirement traces to Goal, a CON.*, a process step, or a state.
 
 | Capability | Containers involved | Key constraint |
 |------------|---------------------|----------------|
-| Card Authorization | Payment Orchestrator, Fraud Engine, VietinBank Acquirer | CON.1 (VND), CON.6 (30s timeout) |
+| Card Authorization | Payment Orchestrator, Fraud Engine, Vietcombank Acquirer | CON.1 (VND), CON.6 (30s timeout) |
 | Idempotent Processing | Payment Orchestrator, Idempotency Store | CON.2 (48h, 64 chars, 5s wait) |
 | Fraud Detection | Fraud Engine, Idempotency Store (Redis counters) | CON.3 (auth only), CON.8 (BIN=VN) |
-| Post-Auth Operations | Payment Orchestrator, VietinBank Acquirer | CON.4 (7d), CON.5 (10 refunds, 180d) |
+| Post-Auth Operations | Payment Orchestrator, Vietcombank Acquirer | CON.4 (7d), CON.5 (10 refunds, 180d) |
 | Async Notification | Message Queue, Webhook Service | CON.7 (7 attempts, HMAC) |
 | Query Independence | Query Store | No external dependency |
 | Auto-Expiry | Expiry Job, Payment Store | CON.4 (hourly, 7d) |

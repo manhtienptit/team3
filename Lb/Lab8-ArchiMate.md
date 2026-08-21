@@ -64,7 +64,7 @@ Scope:      in-scope: Goal, Outcome, Constraints (CON.1–CON.8) / out-of-scope:
 │  │  CON.5  Max 10 partial refunds per payment within 180 days          │    │
 │  │  CON.6  Acquirer timeout 30s + 1 retry after 5s                     │    │
 │  │  CON.7  Webhook: 7 attempts, HMAC-SHA256, 30d event TTL            │    │
-│  │  CON.8  Single acquirer VietinBank via NAPAS (domestic Visa/MC)     │    │
+│  │  CON.8  Single acquirer Vietcombank via NAPAS (domestic Visa/MC)     │    │
 │  │                                                                     │    │
 │  └─────────────────────────────────────────────────────────────────────┘    │
 │                                                                             │
@@ -205,7 +205,7 @@ Scope:      in-scope: internal containers cooperation / out-of-scope: UML messag
 │           │                   │     │     │     │                           │
 │           │                   │     │     │     │                           │
 │   ┌───────▼───────┐   ┌──────▼──┐  │  ┌──▼─────────┐  ┌──────────────┐   │
-│   │  Query Store  │   │Idempot- │  │  │VietinBank  │  │Fraud Engine  │   │
+│   │  Query Store  │   │Idempot- │  │  │Vietcombank  │  │Fraud Engine  │   │
 │   │  (Read)       │   │ency     │  │  │Acquirer    │  │              │   │
 │   │               │   │Store    │  │  │(external)  │  │              │   │
 │   └───────────────┘   └─────────┘  │  └────────────┘  └──────────────┘   │
@@ -295,7 +295,7 @@ Scope:      in-scope: deployment locations (I-9) / out-of-scope: channel writing
 │  └────────────────────────┘                                                  │
 │                                                                             │
 │  «Forbidden path»: Webhook Service ──✗──▶ Payment Store (direct write)      │
-│  «Forbidden path»: Merchant ──✗──▶ VietinBank Acquirer (direct call)        │
+│  «Forbidden path»: Merchant ──✗──▶ Vietcombank Acquirer (direct call)        │
 │                                                                             │
 └─────────────────────────────────────────────────────────────────────────────┘
 ```
