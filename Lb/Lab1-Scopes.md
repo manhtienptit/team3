@@ -64,10 +64,10 @@
 
 1. Merchant Platform submits authorization request (amount, card, idempotency key)
 2. API Gateway validates input (amount 10K–500M VND, Luhn, card expiry)
-3. Payment Orchestrator checks Idempotency Store (Redis) — duplicate returns cached response
-4. Fraud Engine evaluates 5 rules (velocity, high-value, merchant velocity, BIN country, daily cumulative)
+3. Payment Orchestrator checks Idempotency Store — duplicate returns cached response
+4. Payment Orchestrator (fraud module) evaluates 5 rules (velocity, high-value, merchant velocity, BIN country, daily cumulative)
 5. Payment Orchestrator routes to AcquirerHost (30s timeout, 1 retry after 5s)
-6. AcquirerHost → NAPAS → Issuing Bank → approve/decline
+6. AcquirerHost → NAPAS Switch → Issuing Bank → approve/decline
 7. Payment Orchestrator persists Payment (status: Authorized, expiresAt: now + 7d) to Payment Store
 8. Payment Orchestrator publishes payment.authorized event to Message Queue
 9. Webhook Service consumes event, signs HMAC-SHA256, delivers POST to Merchant Platform (10s timeout)
@@ -76,9 +76,9 @@
 **Principles / hard rules (what must never happen):**
 
 - Idempotency check must NEVER occur after fraud evaluation or acquirer call
-- Fraud Engine must NEVER evaluate on capture, void, or refund paths
+- Payment Orchestrator's fraud module must NEVER evaluate on capture, void, or refund paths
 - Webhook delivery must NEVER block the synchronous payment API response
-- Payment query must NEVER call AcquirerHost or NAPAS
+- Payment query must NEVER call AcquirerHost or NAPAS Switch
 - A single Payment must NEVER have more than 10 partial refunds
 - Authorization hold must NEVER exceed 7 calendar days without expiring to Failed
 
@@ -167,7 +167,7 @@
 | CON.5 | Maximum 10 partial refunds per payment within 180 days | Refund request exceeding count/window → 400/409 |
 | CON.6 | Acquirer timeout 30s + 1 retry after 5s | Exhausted retries → Failed; same transaction reference (no duplicate) |
 | CON.7 | Webhook: 7 attempts (1m/5m/30m/2h/12h/24h), HMAC-SHA256, 30d TTL | After max retries → failed_delivery; event queryable 30 days |
-| CON.8 | Single acquirer: AcquirerHost via NAPAS (domestic Visa/MC) | No acquirer routing logic; BIN country ≠ VN → fraud block |
+| CON.8 | Single acquirer: AcquirerHost via NAPAS Switch (domestic Visa/MC) | No acquirer routing logic; BIN country ≠ VN → fraud block |
 
 ---
 
@@ -175,8 +175,8 @@
 
 | Use case | Happy path | At least one exception (`alt`) |
 |----------|------------|--------------------------------|
-| Authorize Payment | Merchant Platform → API Gateway → Payment Orchestrator → Idempotency Store check → Fraud pass → AcquirerHost approve → Persist Authorized → Webhook | alt: Fraud blocks → Declined (no acquirer call) |
-| Capture Payment | Merchant Platform → API Gateway → Payment Orchestrator → Idempotency Store check → Validate (Authorized + not expired) → AcquirerHost capture → Persist Captured → Webhook | alt: Auth expired → 409 authorization_expired |
-| Refund Payment | Merchant Platform → API Gateway → Payment Orchestrator → Idempotency Store check → Validate (Captured + amount ≤ remaining + count < 10 + ≤ 180d) → AcquirerHost refund → Persist → Webhook | alt: Max refunds exceeded → 400 max_refunds_exceeded |
+| Authorize Payment | Merchant Platform → API Gateway → Payment Orchestrator → Idempotency Store check → Fraud pass → AcquirerHost approve → Persist Authorized → Webhook Service | alt: Fraud blocks → Declined (no acquirer call) |
+| Capture Payment | Merchant Platform → API Gateway → Payment Orchestrator → Idempotency Store check → Validate (Authorized + not expired) → AcquirerHost capture → Persist Captured → Webhook Service | alt: Auth expired → 409 authorization_expired |
+| Refund Payment | Merchant Platform → API Gateway → Payment Orchestrator → Idempotency Store check → Validate (Captured + amount ≤ remaining + count < 10 + ≤ 180d) → AcquirerHost refund → Persist → Webhook Service | alt: Max refunds exceeded → 400 max_refunds_exceeded |
 
 **One container for optional C4 Component:** Payment Orchestrator
