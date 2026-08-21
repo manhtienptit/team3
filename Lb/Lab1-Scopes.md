@@ -175,8 +175,8 @@
 
 | Use case | Happy path | At least one exception (`alt`) |
 |----------|------------|--------------------------------|
-| Authorize Payment | Merchant Platform → API Gateway → Orchestrator → Redis idemp → Fraud pass → Acquirer approve → Persist Authorized → Webhook | alt: Fraud blocks → Declined (no acquirer call) |
-| Capture Payment | Merchant Platform → API Gateway → Orchestrator → Redis idemp → Validate (Authorized + not expired) → Acquirer capture → Persist Captured → Webhook | alt: Auth expired → 409 authorization_expired |
-| Refund Payment | Merchant Platform → API Gateway → Orchestrator → Redis idemp → Validate (Captured + amount ≤ remaining + count < 10 + ≤ 180d) → Acquirer refund → Persist → Webhook | alt: Max refunds exceeded → 400 max_refunds_exceeded |
+| Authorize Payment | Merchant Platform → API Gateway → Payment Orchestrator → Idempotency Store check → Fraud pass → AcquirerHost approve → Persist Authorized → Webhook | alt: Fraud blocks → Declined (no acquirer call) |
+| Capture Payment | Merchant Platform → API Gateway → Payment Orchestrator → Idempotency Store check → Validate (Authorized + not expired) → AcquirerHost capture → Persist Captured → Webhook | alt: Auth expired → 409 authorization_expired |
+| Refund Payment | Merchant Platform → API Gateway → Payment Orchestrator → Idempotency Store check → Validate (Captured + amount ≤ remaining + count < 10 + ≤ 180d) → AcquirerHost refund → Persist → Webhook | alt: Max refunds exceeded → 400 max_refunds_exceeded |
 
 **One container for optional C4 Component:** Payment Orchestrator
