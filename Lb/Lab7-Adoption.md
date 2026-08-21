@@ -8,7 +8,9 @@
 
 The team adopts the **Guide** (from list.md) as written. G1–G6 and the RACI table are used without modification. No competing gate list, no parallel RACI.
 
-**Statement:** Team Payment adopts the modeling guide as the single standard for the after pack. All after-pack diagrams will carry the diagram header with RACI letters. Quality gates G1–G6 are the only gates applied. The RACI table from the Guide governs artifact ownership.
+**Statement:** Team 3 adopts the modeling guide as the single standard for the after pack. All after-pack diagrams will carry the diagram header with RACI letters. Quality gates G1–G6 are the only gates applied — `Quality-Gates-Architecture.md` and `Quality-Gates-Design.md` at the repo root are unused from this sitting onward. The RACI table from the Guide governs artifact ownership, copied as written (no rows re-assigned).
+
+**Owner role.** No separate business owner is available for this exercise. Ninh Mạnh Tiến (EA, team lead) also plays **Owner** — the **A** on Motivation, Business Process, and C4 Context — acting as facilitator.
 
 ---
 
@@ -51,16 +53,16 @@ The team adopts the **Guide** (from list.md) as written. G1–G6 and the RACI ta
 
 ## 5. Quality Gates G1–G6 (adopted from Guide)
 
-| Gate | Blocks | Pass Rule (Payment Gateway) | Evidence |
-|------|--------|------------------------------|----------|
-| **G1** Strategy signed | Solution design | Goal (merchant card payments), outcome (500 TPS, P95<2s, 99.9%), CON.1–CON.8 listed | Lab 8 View 1: Motivation |
-| **G2** Process + states | Dev + Test design | Payment states (7) match I-6; process shows CON.* on branches | Lab 8 View 2 + Lab 5 State |
-| **G3** C4 Context + Container | Implementation | No unnamed externals; sync/async labeled; names = Lab 1 index | Lab 9 |
-| **G4** Contracts | Coding of integrations | OpenAPI for every Container relationship | Checklist (not drawn) |
-| **G5** Critical exception path | Production release | Fraud block, acquirer timeout, idemp conflict, auth expiry modeled | Lab 5/10 Sequence alts |
-| **G6** Test coverage | UAT sign-off | All transitions + alts mapped; participants = C4 names | Lab 5/10 G6 checklist |
+| Gate | Blocks | Pass Rule (Payment Gateway) | Evidence | Pass? |
+|------|--------|------------------------------|----------|:---:|
+| **G1** Strategy signed | Solution design | Goal (merchant card payments), outcome (500 TPS, P95<2s, 99.9%), CON.1–CON.8 listed | Lab 8 View 1: Motivation | |
+| **G2** Process + states | Dev + Test design | Payment states (7) match I-6; process shows CON.* on branches | Lab 8 View 2 + Lab 1 I-6 / Lab 3 test spec (until Lab 5 is Done, then + Lab 5 State) | |
+| **G3** C4 Context + Container | Implementation | No unnamed externals; sync/async labeled; names = Lab 1 index | Lab 9 | |
+| **G4** Contracts | Coding of integrations | OpenAPI for every Container relationship | Checklist (not drawn) | |
+| **G5** Critical exception path | Production release | Fraud block, acquirer timeout, idemp conflict, auth expiry modeled | Lab 3 exception spec (until Lab 5 is Done, then + Lab 5/10 Sequence alts) | |
+| **G6** Test coverage | UAT sign-off | All transitions + alts mapped; participants = C4 names | Lab 3 test spec (until Lab 5 is Done, then + Lab 5/10 G6 checklist) | |
 
-**This pack draws through G3.** G4–G6 are checklists on the models.
+**This pack draws through G3.** G4–G6 are checklists on the models. **Pass?** stays blank until Labs 8–10 exist — this sitting only registers the gates, it does not check them off.
 
 ---
 
@@ -71,9 +73,9 @@ The team adopts the **Guide** (from list.md) as written. G1–G6 and the RACI ta
 | Motivation / Strategy | **R** | C | C | I | C | I | I | I | **A** |
 | Business Process | C | C | **R** | I | C | I | C | I | **A** |
 | C4 Context | C | **R** | C | I | C | I | I | I | **A** |
-| C4 Container | I | **R** | I | C | C | C | I | C | I |
+| C4 Container | **A** | **R** | I | C | C | C | I | C | I |
 | C4 Component | I | **A** | I | C | C | **R** | C | I | I |
-| Application Cooperation | C | **R** | I | C | C | C | I | I | I |
+| Application Cooperation | **A** | **R** | I | C | C | C | I | I | I |
 | UML Sequence | I | **A** | C | I | C | **R** | C | I | I |
 | UML Activity / State | I | C | **A** | I | C | C | **R** | I | I |
 | Technology / Deployment | I | **A** | I | I | C | C | I | **R** | I |

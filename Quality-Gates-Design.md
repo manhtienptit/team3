@@ -1,5 +1,9 @@
 # Quality gates — Design
 
+**Unused — Lab 7 G1–G6 only.** Team 3 adopted the Guide's G1–G6 gates in `Lb/Lab7-Adoption.md`; this DG-\* checklist is a competing gate list and is not applied. Kept for reference only.
+
+---
+
 Reviewer checklist for a **logical / solution design** pack (UML behavior and domain design). C4 context/container is gated by [Quality-Gates-Architecture.md](Quality-Gates-Architecture.md), not this file.
 
 **Source of truth.** [Domain.md](Domain.md), [Requirements.md](Requirements.md) (US-01…US-09, NFR-01…NFR-05), [Analysis.md](Analysis.md) (BR-01…BR-18, OA-01…OA-10).
