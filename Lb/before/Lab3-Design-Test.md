@@ -64,14 +64,12 @@ Every message is owned by a `Payment Orchestrator` module or a neighbour contain
 | 12 | Request Handler | Event Publisher | publish(payment.authorized) |
 | 13 | Event Publisher | Message Queue | produce event |
 | 14 | API Gateway | Merchant Platform | 201 Authorized |
-| 15 | Message Queue | Webhook Service | consume payment.authorized event (async) |
-| 16 | Webhook Service | Merchant Platform | POST webhook, HMAC-SHA256 (async) |
 
 **alt: Fraud Block [CON.3]**
 
 | # | From | To | Message |
 |----|------|----|---------|
-| 6a | Fraud Gate | Request Handler | blocked(fraud_rule_id — one of FRAUD-01→05) |
+| 6a | Fraud Gate | Request Handler | blocked(FRAUD-XX) |
 | 6b | Request Handler | Persistence Manager | persist(Payment{status: Declined, fraud_rule}) |
 | 6c | Request Handler | Event Publisher | publish(payment.declined) |
 | 6d | API Gateway | Merchant Platform | 200 Declined |

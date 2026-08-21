@@ -1,4 +1,4 @@
-# Lab 4 — Standardize Following Modeling-Driven Design
+# Lab 4 — Standardize Labs 1–3 (Own Method)
 
 **R:** SA · **A:** EA
 
@@ -6,168 +6,116 @@
 
 ## 1. Overview
 
-Lab 4 produces the **after pack** by restyling the same views from the before pack using the Guide adopted in Lab 7. The before pack is archived unchanged. This document contains:
+Lab 4 is the first cleanup pass on Labs 1–3, using **our own method** — not the Guide (that is adopted in Lab 7) and no ArchiMate / C4 / UML notation (that starts at Lab 5/8/9/10). This document contains:
 
-1. After pack reference (restyled views)
-2. Name-identity check
-3. Language check
-4. Defect list (before pack)
-5. Comparison note
+1. Before pack (frozen copies of Lab 1–3 as they stood at the start of this sitting)
+2. Cleaned pack (Lab 1–3 as they now stand, forks resolved)
+3. Name-identity check (Lab 2 and Lab 3 strings against the Lab 1 index)
+4. Defect list (how Lab 1–3 were first written)
+5. Comparison note (what got cleaned, what we still don't know how to standardize)
 
 ---
 
 ## 2. Before Pack (Archived — DO NOT EDIT)
 
-The before pack consists of the original documents drawn before Lab 7 modeling adoption:
+Frozen at the start of this sitting, before the fixes in §3 below.
 
 | Lab | Before artifact | Location (archived) |
-|-----|-----------------|---------------------|
-| Lab 1 | Scope (original format) | Before: embedded in payment-gateway-design.md §1–3 |
-| Lab 2 | Requirements & Analysis | Before: payment-gateway-design.md §3, Analysis.md |
-| Lab 5 | UML sequences | Before: payment-gateway-design.md §5.2–5.3 |
-| Lab 6 | Integration | Before: payment-gateway-design.md §5.4, §5.5 |
-| Lab 8 | Architecture views | Before: Architecture.md (C4 + deployment mixed) |
-| Lab 9 | C4 diagrams | Before: Architecture.md §1–2 |
-| Lab 10 | UML detail | Before: Design.md sequences |
-
-**These files are preserved unchanged at their original locations in the workspace root.**
+|-----|-----------------|----------------------|
+| Lab 1 | Scope (I-1 to I-11) | `Lb/before/Lab1-Scopes.md` |
+| Lab 2 | Requirements and Analysis | `Lb/before/Lab2-Requirements.md` |
+| Lab 3 | Design and Test Evidence | `Lb/before/Lab3-Design-Test.md` |
 
 ---
 
-## 3. After Pack Reference
+## 3. Cleaned Pack
 
-The after pack is the set of Lab 7 deliverables (restyled per Guide):
+Same three artifacts, live at `Lb/Lab1-Scopes.md`, `Lb/Lab2-Requirements.md`, `Lb/Lab3-Design-Test.md`. Leftover forks resolved this sitting:
 
-| Lab | After artifact | File |
-|-----|----------------|------|
-| Lab 1 | Scope (I-1 to I-11 complete) | Lab1-Scopes.md |
-| Lab 2 | Requirements and Analysis (no gates — gates are Lab 7 only) | Lab2-Requirements.md |
-| Lab 5 | UML Sequence/Activity/State + G6 | Lab5-UML-LowLevel.md |
-| Lab 6 | Integration ecosystem (modeled) | Lab6-Integration-Ecosystem.md |
-| Lab 7 | Adoption record | Lab7-Adoption.md |
-| Lab 8 | 4 ArchiMate views (Motivation, Process, App Coop, Technology) | Lab8-ArchiMate.md |
-| Lab 9 | C4 Context + Container + Component | Lab9-C4.md |
-| Lab 10 | UML sequences with component detail | Lab10-UML-Named-UseCases.md |
-
-Each after-pack view carries the **diagram header** with Title, Viewpoint, Layer, RACI, Version, Legend, Scope.
+| # | Fork | Fix |
+|---|------|-----|
+| 1 | Lab 3 used both `FRAUD-01→05` (rule range) and `FRAUD-XX` (placeholder) for the same concept | Standardized on `FRAUD-01→05`; the alt-fragment placeholder now reads `fraud_rule_id — one of FRAUD-01→05` |
+| 2 | CON.8 (single acquirer, BIN=VN fraud block) had no requirement tracing to it in Lab 2 | REQ-08 and REQ-15 (fraud block requirements) now trace to `CON.3, CON.8` in both the Requirements List and the Trace Table |
+| 3 | Lab 3's Authorize Payment sequence stopped at "publish event" — never showed `Webhook Service` delivering to `Merchant Platform`, even though that hop is Lab 1 I-5 steps 8–9 | Added steps 15–16: `Message Queue → Webhook Service` (consume, async) and `Webhook Service → Merchant Platform` (deliver, async) |
 
 ---
 
 ## 4. Name-Identity Check
 
-Every box/lifeline string in the after pack = Lab 1 Input index. No forks.
+Every string in Lab 2 and Lab 3 checked against the Lab 1 I-2 / I-3 / I-4 index. No forks found beyond the three fixed in §3.
 
-| Name (Lab 1 index) | Used in Lab 8 | Used in Lab 9 | Used in Lab 5/10 Lifeline | Consistent? |
-|---------------------|:---:|:---:|:---:|:---:|
-| Merchant | ✓ (Motivation, Process — business actor only) | ✓ (Context, Person) | — (not a technical actor) | ✓ |
-| Merchant Platform | ✓ (App Coop, Tech) | ✓ (Context, Container) | ✓ (actor) | ✓ |
-| API Gateway | ✓ (App Coop) | ✓ (Container) | ✓ (participant) | ✓ |
-| Payment Orchestrator | ✓ (App Coop) | ✓ (Container, Component) | ✓ (participant box) | ✓ |
-| Idempotency Store | ✓ (App Coop) | ✓ (Container) | ✓ (participant) | ✓ |
-| Payment Store | ✓ (App Coop, Tech) | ✓ (Container) | ✓ (participant) | ✓ |
-| Query Store | ✓ (App Coop, Tech) | ✓ (Container) | — (not in write sequences) | ✓ |
-| Message Queue | ✓ (App Coop) | ✓ (Container) | ✓ (participant) | ✓ |
-| Webhook Service | ✓ (App Coop) | ✓ (Container) | — (async, not in payment seq) | ✓ |
-| Expiry Job | ✓ (App Coop, Tech) | ✓ (Container) | — (background, separate) | ✓ |
-| AcquirerHost | ✓ (App Coop) | ✓ (Context, Container) | ✓ (participant) | ✓ |
-| NAPAS Switch | — | ✓ (Context) | — | ✓ |
-| Issuing Bank | — | ✓ (Context) | — | ✓ |
+| Lab 1 Index | Used in Lab 2 | Used in Lab 3 | Match? |
+|-------------|:---:|:---:|:---:|
+| Merchant (I-2) | ✓ (user-story prose only) | — | ✓ |
+| Merchant Platform (I-3) | ✓ | ✓ | ✓ |
+| AcquirerHost (I-3) | ✓ | ✓ | ✓ |
+| NAPAS Switch (I-3) | — | ✓ | ✓ |
+| Issuing Bank (I-3) | — | — | ✓ (not needed on this sitting's flow) |
+| API Gateway (I-4) | — | ✓ | ✓ |
+| Payment Orchestrator (I-4) | ✓ | ✓ | ✓ |
+| Idempotency Store (I-4) | ✓ | ✓ | ✓ |
+| Payment Store (I-4) | ✓ | ✓ | ✓ |
+| Query Store (I-4) | ✓ | — | ✓ (not needed on this sitting's flow) |
+| Message Queue (I-4) | ✓ | ✓ | ✓ |
+| Webhook Service (I-4) | ✓ | ✓ (after §3 fix) | ✓ |
+| Expiry Job (I-4) | ✓ | ✓ | ✓ |
 
-**Fraud Engine is not an I-4 container** — it is an in-process module inside `Payment Orchestrator` (Lab 1 I-4 note). It does not get its own row; any diagram still drawing it as a separate box or lifeline is a fork and has been corrected.
+**Fraud Gate vs Fraud Engine.** `Fraud Engine` is not in the I-4 index — Lab 1 fixed that already. Lab 2 refers to it at capability level ("Payment Orchestrator, in-process fraud module"); Lab 3 names the module `Fraud Gate` at component level. Same concept, two zoom levels, not a fork.
 
-**Result:** No forked names. All strings match Lab 1 I-2/I-3/I-4. ✓
+**I-8 edges.** Every producer/consumer pair Lab 3's contract register uses (§4 of Lab 3) is a Lab 1 I-8 row. No new edges introduced.
 
----
-
-## 5. Language Check
-
-One viewpoint per canvas. No mixed relationships.
-
-| After View | Language | Viewpoint | Mixed? |
-|------------|----------|-----------|--------|
-| Lab 8 View 1 — Motivation | ArchiMate | Motivation | No ✓ |
-| Lab 8 View 2 — Business Process | ArchiMate | Business Process | No ✓ |
-| Lab 8 View 3 — Application Cooperation | ArchiMate | Application Cooperation | No ✓ |
-| Lab 8 View 4 — Technology | ArchiMate | Technology | No ✓ |
-| Lab 9 — C4 Context | C4 | Context (L1) | No ✓ |
-| Lab 9 — C4 Container | C4 | Container (L2) | No ✓ |
-| Lab 9 — C4 Component | C4 | Component (L3) | No ✓ |
-| Lab 5/10 — Sequences | UML | Sequence | No ✓ |
-| Lab 5 — Activity | UML | Activity | No ✓ |
-| Lab 5 — State Machine | UML | State Machine | No ✓ |
-
-**Result:** One language per diagram. No mixed notation. ✓
+**Result:** No forked names between Lab 2, Lab 3, and the Lab 1 index.
 
 ---
 
-## 6. Defect List (Before Pack)
+## 5. Defect List — How Lab 1–3 Were First Written
 
-Failures found on the before pack (Architecture.md, payment-gateway-design.md, Design.md), each with the Guide rule it violates.
+Failures found on Lab 1–3 as originally drafted, before this and earlier sittings' fixes. Own-method defects, not Guide-rule violations.
 
-| # | Defect | Before file | Guide rule violated | Severity | Owner to fix |
-|---|--------|-------------|---------------------|----------|-------------|
-| D1 | C4 Context and Container mixed on same document (§1 + §2 Architecture.md) without clear separation | Architecture.md | "Do not mix L1+L2+L3 on one canvas" | High | SA |
-| D2 | Missing diagram header (Title, Viewpoint, RACI, Legend) on all views | Architecture.md, Design.md | "Diagram header (every after view)" | High | SA |
-| D3 | No RACI assignment on any artifact | All before files | "RACI per artifact" | High | SA |
-| D4 | ArchiMate and C4 concepts mixed — Application Cooperation not separated from C4 Container | Architecture.md §2 | "One language per diagram" | Medium | SA |
-| D5 | Deployment details (Redis cluster nodes, PostgreSQL replica) appear on Container view | Architecture.md §2, §8 | "No pods/deployment on Container" | Medium | Ops/SA |
-| D6 | Sequence diagrams use generic names ("Orchestrator") not identical to Container names ("Payment Orchestrator") | payment-gateway-design.md §5.2 | "Name identity: lifeline = C4 Container name" | Medium | Dev |
-| D7 | No explicit Motivation/Strategy view (goal, constraints not in ArchiMate notation) | All before files | "Motivation view required" | High | EA |
-| D8 | Business Process not in ArchiMate — described as text-only numbered steps | payment-gateway-design.md §Domain | "Business Process view required" | Medium | BA |
-| D9 | State machine not separated as standalone UML diagram — embedded in text | payment-gateway-design.md §3.4 | "One object per state machine; UML notation" | Low | Test |
-| D10 | No Quality Gates G1–G6 applied (custom gate tables used instead) | Quality-Gates-Architecture.md, Quality-Gates-Design.md | "Do not invent a second gate set" | High | EA |
-| D11 | Product names (Kong, Kafka, Redis, PostgreSQL) appear as container names, not labels | Architecture.md §2 | "Product names as labels only" | Low | SA |
-| D12 | Missing Legend on all diagrams | All before files | "Missing legend = automatic fail" | High | SA |
-| D13 | Internals (Fraud Engine as in-process module) shown on Context level | Architecture.md §1 (implicit) | "No internals on Context" | Medium | SA |
-| D14 | No sync/async labels on relationships in text-based diagrams | payment-gateway-design.md §5.1 | "G3: sync/async labeled" | Medium | SA |
-| D15 | Multiple objects implied on state discussion (Payment + WebhookEvent lifecycle) without separation | Quality-Gates-Design.md D4, D12 | "One object per state machine" | Low | Test |
+| # | Defect | Owner to fix |
+|---|--------|--------------|
+| D1 | I-3 used a real bank identity (`VietinBank Acquirer`, later `Vietcombank Acquirer`) instead of a simulated name | SA |
+| D2 | I-5 and I-11 used abbreviations not in the index (`API GW`, `Orchestrator`, `Redis idemp`, bare `Acquirer`, bare `NAPAS`) | SA |
+| D3 | `Fraud Engine` was listed as its own I-4 container while also described as co-located inside `Payment Orchestrator` — carried into later labs as a standalone box | SA / Dev |
+| D4 | I-2 Person `Merchant` was also used as the literal HTTP caller and webhook recipient, instead of a distinct I-3 external (`Merchant Platform`) | BA / SA |
+| D5 | I-7 said Webhook Event's source of truth is `Payment Store`; I-9's forbidden path said Webhook Service must not write to `Payment Store` at all — contradiction | SA |
+| D6 | I-1 Group used a placeholder (`Team Payment`) instead of the real team name and members | Owner |
+| D7 | Lab 2 carried a G1–G6 gate register — gates are Lab 7 (Guide adoption), not Lab 2 | EA |
+| D8 | Lab 3 was skipped as `Lab3-NA.md` ("drawing pack, no implementation") — Lab 3 is required design evidence, not an exemption | Dev / Test |
+| D9 | Direct Charge stayed in-scope (I-1) but I-6 had no `Pending → Captured` transition for it | Test |
+| D10 | `FRAUD-01→05` and `FRAUD-XX` used inconsistently for the same concept within Lab 3 | Dev |
+| D11 | CON.8 had no requirement tracing to it in Lab 2 | BA |
+| D12 | Lab 3's Authorize sequence never showed `Webhook Service` delivering to `Merchant Platform` | Dev |
 
 ---
 
-## 7. Comparison Note — What Modeling Changed
+## 6. Comparison Note
 
-### 7.1 Summary of Changes
+### 6.1 What we cleaned in Lab 1–3
 
-| Aspect | Before | After | Improvement |
-|--------|--------|-------|-------------|
-| **Names** | Inconsistent (e.g., "Orchestrator" vs "Payment Orchestrator", "Redis" vs "Idempotency Store") | Single name-identity index (Lab 1 I-4); all views use same strings | Traceability; no ambiguity |
-| **Languages** | Mixed C4 + ArchiMate + informal text on same pages | One language per view; cross-referenced via mapping table | Clarity; reviewable; fail-safe |
-| **Diagram headers** | None | Every view has Title, Viewpoint, Layer, RACI, Legend, Scope | Governance; clear ownership |
-| **RACI** | Absent | Per-artifact assignment (R draws, A approves, C consulted, I informed) | Accountability; no orphan artifacts |
-| **Quality gates** | Custom gate tables (DG-01→38, AG-01→28) — reinvented | G1–G6 from Guide adopted as-is; product wording adjusted | Consistent process; no competing gates |
-| **Hierarchy** | Flat — all levels in one document | Three-level stack (Enterprise → Solution → Delivery) with explicit language per level | Audience-appropriate views |
-| **Context diagram** | Containers visible on context level | Clean L1: only Person + System-in-focus + Externals | No premature detail for Owner/BA |
-| **Container diagram** | Mixed with deployment (node counts, technology versions prominent) | Pure L2: containers + sync/async relationships; tech as labels | Focus on architecture, not infra |
-| **Sequences** | Generic participant names; no alt fragments documented for all exception paths | Participants = C4 Container names; all named alts with CON.* guards | Testable; G6 coverage |
-| **State machine** | Inline text table | Standalone UML State diagram; one object (Payment); transitions with guards | Single source of truth for states |
-| **ArchiMate** | Absent | 4 dedicated views (Motivation, Process, App Cooperation, Technology) | EA/Owner/BA get appropriate abstraction |
-| **Integration** | Described in tables, not visualized with sync/async | Ecosystem diagram with labels; pattern table; negative evidence | Modeled, not just described |
-| **Scope** | Spread across multiple documents | Consolidated in Lab 1 I-1→I-11; every downstream view references same index | Single source; no drift |
+| Aspect | Before | After |
+|--------|--------|-------|
+| External identity | Real bank name (D1) | Simulated `AcquirerHost` |
+| Process/use-case names | Abbreviations forked from the index (D2) | Full I-3/I-4 strings throughout I-5, I-11 |
+| Fraud module | Double-modeled as container + co-located module (D3) | One thing: in-process module of `Payment Orchestrator` |
+| Technical caller | `Merchant` (Person) used as HTTP/webhook endpoint (D4) | `Merchant Platform` (I-3) carries every protocol-level relationship |
+| Source-of-truth rule | Contradicted the forbidden-write rule (D5) | Webhook Service writes only its own `webhook_event` rows |
+| Team identity | Placeholder (D6) | Real team and member names |
+| Gates | G1–G6 register inside Lab 2 (D7) | Removed; gates stay in Lab 7 |
+| Lab 3 | Skipped as N/A (D8) | Six design artifacts, current-style |
+| State coverage | Direct Charge had no transition (D9) | `Pending → Captured` added to I-6 |
+| Fraud ID notation | Two forms for one concept (D10) | One form, `FRAUD-01→05` |
+| Requirement traceability | CON.8 untraced (D11) | Traced from REQ-08 and REQ-15 |
+| Sequence completeness | Webhook delivery hop missing (D12) | Added to Lab 3's sequence |
 
-### 7.2 Key Structural Changes
+### 6.2 What we still don't know how to standardize
 
-1. **Before:** One Architecture.md contained Context + Container + Deployment + NFR + Traceability. No language discipline.  
-   **After:** Separate views per language and level (Lab 8 ArchiMate, Lab 9 C4, Lab 5/10 UML). Each view one language only.
+This is expected at this sitting — Lab 7 teaches the standard next.
 
-2. **Before:** Quality gates were a custom 38-row (Design) + 28-row (Architecture) checklist with different structure.  
-   **After:** G1–G6 from Guide. Simple, consistent, blocks clearly defined.
+- No agreed notation or diagram-header format yet (ArchiMate vs C4 vs UML, RACI legend, versioning). Deferred to Lab 7's Guide adoption.
+- No agreed rule for validating component-level names (e.g. `Fraud Gate`, `Request Handler`) against the I-2/I-3/I-4 index — only container-level names have a check so far.
+- No agreed severity or threshold model behind "5 fraud rules" — the specific velocity/amount/geo thresholds are not written anywhere in Lab 1–3 and stay open.
 
-3. **Before:** No explicit enterprise (ArchiMate) layer. Business motivation implied but not drawn.  
-   **After:** Motivation view with Goal, Outcome, Constraints, Principles. Owner can sign G1 without reading container details.
+---
 
-4. **Before:** RACI not assigned. Unclear who draws, who approves.  
-   **After:** Every artifact has R (draws) and A (approves) per the Guide RACI table.
-
-5. **Before:** Name inconsistencies (Redis Cluster / Idempotency Store; PostgreSQL 16 Primary / Payment Store).  
-   **After:** Technology names become labels; business-meaningful names are the identifiers.
-
-### 7.3 What Did NOT Change
-
-- Domain scope (in/out) remains the same
-- Core business rules (CON.1–CON.8) are identical values
-- Payment states (7) and transitions are unchanged
-- Container decomposition is architecturally equivalent (same 8 I-4 containers; fraud module is in-process inside Payment Orchestrator, not a 9th container)
-- External systems remain the same 4 (Merchant Platform, AcquirerHost, NAPAS Switch, Issuing Bank)
-- Named use cases are the same 3
-
-**The architecture was not redesigned. It was re-expressed in a disciplined, reviewable, traceable format.**
+**Labs 5–10 are not touched in this sitting.** They still carry Guide-style diagram headers from earlier work; that gets stripped when we reach Lab 5, after Lab 4 is accepted.
