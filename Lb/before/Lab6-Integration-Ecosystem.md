@@ -4,8 +4,6 @@ Current style. No Guide, no diagram header block, no C4/ArchiMate viewpoint clai
 
 Scope: integration patterns from Lab 1 I-8. Out of scope: internal component logic (that is Lab 3 / Lab 9 Component / Lab 10).
 
-Lab 4, Lab 5, and this file are archived as first written in [`Lb/before/`](before/).
-
 ---
 
 ## 1. Ecosystem Overview
@@ -13,11 +11,6 @@ Lab 4, Lab 5, and this file are archived as first written in [`Lb/before/`](befo
 Boxes are I-4 containers and I-3 externals, drawn plainly (no C4/ArchiMate notation). Product names appear as **labels only** — nothing is installed.
 
 ```
-                              ┌─────────────────────┐
-                              │  Merchant Platform  │
-                              └──────────┬──────────┘
-                                         │ sync HTTPS/TLS
-                                         ▼
 ┌─────────────────────────────────────────────────────────────────────────────────┐
 │                            Payment Gateway (System Boundary)                      │
 │                                                                                 │
@@ -58,9 +51,7 @@ Boxes are I-4 containers and I-3 externals, drawn plainly (no C4/ArchiMate notat
 │    ┌────────────────┐                                  │                        │
 │    │  Expiry Job    │ sync SQL                         │                        │
 │    │  [cron hourly] │──────────▶ Payment Store         │                        │
-│    └───────┬────────┘                                  │                        │
-│            │ async publish (payment.failed)            │                        │
-│            └──────────────────────────────────────────▶│                        │
+│    └────────────────┘                                  │                        │
 │                                                        │                        │
 └────────────────────────────────────────────────────────┼────────────────────────┘
                                                          │
@@ -74,10 +65,11 @@ Boxes are I-4 containers and I-3 externals, drawn plainly (no C4/ArchiMate notat
                └─────────────────────┘
 
 
-         sync HTTPS (30s timeout + 1 retry), continued from Payment Orchestrator above
-                                                      ┌─────────────────────────┐
-                                                      │  AcquirerHost           │
-                                                      │  (External)             │
+         sync HTTPS (30s timeout + 1 retry)
+┌─────────────────────────────────┐
+│  Payment Orchestrator           │─────────────────▶ ┌─────────────────────────┐
+│                                 │                   │  AcquirerHost           │
+└─────────────────────────────────┘                   │  (External)             │
                                                       └────────────┬────────────┘
                                                                    │ ISO 8583
                                                       ┌────────────▼────────────┐
