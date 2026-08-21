@@ -53,7 +53,7 @@ Each requirement traces to Goal, a CON.*, a process step, or a state.
 | Idempotent Processing | Payment Orchestrator, Idempotency Store | CON.2 (48h, 64 chars, 5s wait) |
 | Fraud Detection | Payment Orchestrator (in-process fraud module), Idempotency Store (counters) | CON.3 (auth only), CON.8 (BIN=VN) |
 | Post-Auth Operations | Payment Orchestrator, AcquirerHost | CON.4 (7d), CON.5 (10 refunds, 180d) |
-| Async Notification | Message Queue, Webhook Service, Webhook Event Store → Merchant Platform | CON.7 (7 attempts, HMAC) |
+| Async Notification | Message Queue, Webhook Service → Merchant Platform | CON.7 (7 attempts, HMAC) |
 | Query Independence | Query Store | No external dependency |
 | Auto-Expiry | Expiry Job, Payment Store | CON.4 (hourly, 7d) |
 
