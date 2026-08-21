@@ -1,6 +1,6 @@
 # Lab 9 — C4 Context and Container
 
-**R:** SA · **A:** Owner (Context) · SA (Container) · Dev **R** / SA **A** (optional Component)
+**R:** SA · **A:** Owner (Context) · EA (Container) · Dev **R** / SA **A** (optional Component)
 
 ---
 
@@ -35,11 +35,11 @@ C4Context
   System_Ext(issuer, "Issuing Bank", "Customer's bank; approves or declines; holds/releases funds")
 
   Rel(merchant, merchantPlatform, "Owns and operates")
-  Rel(merchantPlatform, gateway, "Submits payment requests; queries status", "HTTPS/TLS")
-  Rel(gateway, merchantPlatform, "Delivers webhook events", "HTTPS POST")
-  Rel(gateway, acquirer, "Sends authorization, capture, void, refund", "HTTPS")
-  Rel(acquirer, napas, "Routes card transactions", "ISO 8583")
-  Rel(napas, issuer, "Forwards auth/capture/void/refund", "ISO 8583")
+  Rel(merchantPlatform, gateway, "Submits payment requests; queries status")
+  Rel(gateway, merchantPlatform, "Delivers webhook events")
+  Rel(gateway, acquirer, "Sends authorization, capture, void, refund")
+  Rel(acquirer, napas, "Routes card transactions")
+  Rel(napas, issuer, "Forwards auth/capture/void/refund")
 ```
 
 ### Context Elements
@@ -85,7 +85,7 @@ Viewpoint:  C4 Container (L2)
 Layer(s):   Application
 As-Is | To-Be | Transition:  To-Be
 Owner:      Role SA  Name Nguyễn Quang Huy
-RACI:       R SA  A SA  C DA, Sec, Dev, Ops  I Test
+RACI:       R SA  A EA  C DA, Sec, Dev, Ops  I Test
 Version:    v1.0  Date 2026-08-20  Status Draft
 Legend:      [Container] = box; [External] = dashed; ─── sync; ═══ async; protocol labeled
 RACI legend: R = draws · A = approves · C = consulted · I = informed
@@ -128,8 +128,8 @@ C4Container
   Rel(webhook, merchantPlatform, "Deliver webhook", "HTTPS POST, HMAC-SHA256, 10s timeout [async]")
   Rel(cron, pgwrite, "Find expired → update status", "SQL [sync]")
   Rel(cron, queue, "Publish payment.failed event", "Producer API [async]")
-  Rel(acquirer, napas, "Route", "ISO 8583")
-  Rel(napas, issuer, "Forward", "ISO 8583")
+  Rel(acquirer, napas, "Route", "ISO 8583 [sync]")
+  Rel(napas, issuer, "Forward", "ISO 8583 [sync]")
 ```
 
 ### Container Elements (= I-4 exactly)
@@ -194,10 +194,10 @@ Scope:      in-scope: internals of Payment Orchestrator ONLY / out-of-scope: oth
 ┌─────────────────────────────────────────────────────────────────────────────┐
 │                    Payment Orchestrator (container drill-down)                │
 │                                                                             │
-│  ┌─────────────────────┐                                                    │
-│  │  Request Handler    │  ← receives from API Gateway                       │
-│  │  (API Controller)   │                                                    │
-│  └──────────┬──────────┘                                                    │
+│  ┌──────────────────────┐        ┌─────────────────────┐                    │
+│  │ [API Gateway]        │───────▶│  Request Handler    │                    │
+│  │  (neighbour — b.box) │        │  (API Controller)   │                    │
+│  └──────────────────────┘        └──────────┬──────────┘                    │
 │             │                                                               │
 │  ┌──────────▼──────────┐                                                    │
 │  │  Input Validator    │  validates amount (10K–500M), card (Luhn, expiry)  │
@@ -253,6 +253,7 @@ Scope:      in-scope: internals of Payment Orchestrator ONLY / out-of-scope: oth
 
 | Neighbour | Type |
 |-----------|------|
+| API Gateway | I-4 Container |
 | Idempotency Store | I-4 Container |
 | AcquirerHost | I-3 External |
 | Payment Store | I-4 Container |
