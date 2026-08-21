@@ -41,6 +41,7 @@ participant "Idempotency Store" as Redis
 participant "AcquirerHost" as Acquirer
 database "Payment Store" as PG
 queue "Message Queue" as MQ
+participant "Webhook Service" as Webhook
 
 == Happy Path ==
 
@@ -93,6 +94,25 @@ EventPub --> ReqHandler : published
 
 ReqHandler --> APIGW : 201 {id, status:"authorized", auth_code}
 APIGW --> Merchant : 201 Authorized
+MQ -> Webhook : consume payment.authorized (async)
+Webhook -> Merchant : POST webhook, HMAC-SHA256 (async)
+
+== alt: Direct Charge (capture:true) [immediate capture] ==
+
+Acquirer --> AcqClient : APPROVE {auth_code}
+AcqClient --> ReqHandler : approved(auth_code)
+ReqHandler -> AcqClient : capture(payment_ref, amount)
+AcqClient -> Acquirer : HTTPS capture
+Acquirer --> AcqClient : CAPTURE_OK
+AcqClient --> ReqHandler : captured
+ReqHandler -> PersistMgr : persist(Payment{status:Captured, capturedAmount:amount})
+PersistMgr -> PG : INSERT Payment
+ReqHandler -> IdempMgr : cache(key, response)
+ReqHandler -> EventPub : publish(payment.captured)
+EventPub -> MQ : produce event
+ReqHandler --> APIGW : 200 {id, status:"captured"}
+APIGW --> Merchant : 200 Captured
+note right: Merchant Platform sees Pending → Captured directly;\nintermediate Authorized is not exposed
 
 == alt: Fraud Block [CON.3] ==
 
@@ -405,6 +425,7 @@ See [Lab5-UML-LowLevel.md](Lab5-UML-LowLevel.md) §5 for full diagram.
 | AcquirerHost | I-3 | External System |
 | Payment Store | I-4 | Container |
 | Message Queue | I-4 | Container |
+| Webhook Service | I-4 | Container (async, Authorize happy path only) |
 
 **Component modules (inside Payment Orchestrator only):**
 - Request Handler, Input Validator, Idempotency Manager, Fraud Gate, State Machine Engine, Acquirer Client, Persistence Manager, Event Publisher
@@ -420,32 +441,34 @@ These are internal to the **one selected container** (Payment Orchestrator) per 
 | # | Transition | Covered in sequence |
 |---|-----------|---------------------|
 | 1 | Pending → Authorized | Authorize §1 (happy path) |
-| 2 | Pending → Declined (fraud) | Authorize §1 (alt: Fraud Block) |
-| 3 | Pending → Declined (issuer) | Authorize §1 (alt: implied in Lab 5) |
-| 4 | Pending → Failed | Authorize §1 (alt: Acquirer Timeout) |
-| 5 | Authorized → Captured | Capture §2 (happy path) |
-| 6 | Authorized → Voided | (Void flow — same pattern as Capture without fraud) |
-| 7 | Authorized → Failed (expired) | (Expiry Job — Lab 5 §5 note) |
-| 8 | Captured → Refunded | Refund §3 (alt: Full Refund) |
-| 9 | Captured → Captured (partial) | Refund §3 (happy path) |
+| 2 | Pending → Captured (Direct Charge) | Authorize §1 (alt: Direct Charge) |
+| 3 | Pending → Declined (fraud) | Authorize §1 (alt: Fraud Block) |
+| 4 | Pending → Declined (issuer) | Authorize §1 (alt: implied in Lab 5) |
+| 5 | Pending → Failed | Authorize §1 (alt: Acquirer Timeout) |
+| 6 | Authorized → Captured | Capture §2 (happy path) |
+| 7 | Authorized → Voided | (Void flow — same pattern as Capture without fraud) |
+| 8 | Authorized → Failed (expired) | (Expiry Job — Lab 5 §5 note) |
+| 9 | Captured → Refunded | Refund §3 (alt: Full Refund) |
+| 10 | Captured → Captured (partial) | Refund §3 (happy path) |
 
 ### All sequence alt fragments mapped
 
 | # | Alt | Use Case | Sequence section |
 |---|-----|----------|-----------------|
-| 1 | Fraud block → Declined | Authorize | §1 alt: Fraud Block |
-| 2 | Idempotency duplicate → cached | Authorize | §1 alt: Idempotency Duplicate |
-| 3 | Concurrent same-key → 409 | Authorize | §1 alt: Concurrent Same Key |
-| 4 | Acquirer timeout → Failed | Authorize | §1 alt: Acquirer Timeout |
-| 5 | Auth expired → 409 | Capture | §2 alt: Authorization Expired |
-| 6 | Amount exceeds authorized → 400 | Capture | §2 alt: Amount Exceeds |
-| 7 | Invalid state → 409 | Capture | §2 alt: Invalid State |
-| 8 | Partial capture → void remainder | Capture | §2 alt: Partial Capture |
-| 9 | Max refunds → 400 | Refund | §3 alt: Max Refunds Exceeded |
-| 10 | Refund window → 409 | Refund | §3 alt: Refund Window Expired |
-| 11 | Amount exceeds refundable → 400 | Refund | §3 alt: Amount Exceeds |
-| 12 | Invalid state → 409 | Refund | §3 alt: Invalid State |
-| 13 | Full refund → Refunded | Refund | §3 alt: Full Refund |
+| 1 | Direct Charge → Captured (immediate capture) | Authorize | §1 alt: Direct Charge |
+| 2 | Fraud block → Declined | Authorize | §1 alt: Fraud Block |
+| 3 | Idempotency duplicate → cached | Authorize | §1 alt: Idempotency Duplicate |
+| 4 | Concurrent same-key → 409 | Authorize | §1 alt: Concurrent Same Key |
+| 5 | Acquirer timeout → Failed | Authorize | §1 alt: Acquirer Timeout |
+| 6 | Auth expired → 409 | Capture | §2 alt: Authorization Expired |
+| 7 | Amount exceeds authorized → 400 | Capture | §2 alt: Amount Exceeds |
+| 8 | Invalid state → 409 | Capture | §2 alt: Invalid State |
+| 9 | Partial capture → void remainder | Capture | §2 alt: Partial Capture |
+| 10 | Max refunds → 400 | Refund | §3 alt: Max Refunds Exceeded |
+| 11 | Refund window → 409 | Refund | §3 alt: Refund Window Expired |
+| 12 | Amount exceeds refundable → 400 | Refund | §3 alt: Amount Exceeds |
+| 13 | Invalid state → 409 | Refund | §3 alt: Invalid State |
+| 14 | Full refund → Refunded | Refund | §3 alt: Full Refund |
 
 ### Participants = C4 Container names ✓
 
