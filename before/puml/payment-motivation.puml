@@ -1,0 +1,26 @@
+@startuml payment-motivation
+!include <archimate/Archimate>
+title Online Payment Processing - Motivation
+caption Viewpoint: ArchiMate Motivation | Layer: Strategy | To-Be | RACI R=EA A=Owner C=SA,Sec I=Dev,Test,Ops | Status Draft
+left to right direction
+Motivation_Stakeholder(stakeholder, "Stakeholder\nMerchant")
+Motivation_Driver(driver, "Driver\nReliable online payment operations")
+Motivation_Goal(goal, "Goal\nOne payment API for authorize, capture, void, refund, status, and webhook")
+Motivation_Outcome(outcome, "Outcome\nIdempotent lifecycle decisions, local queries, and queryable signed status events")
+Motivation_Constraint(c1, "CON.1\nIdempotent writes")
+Motivation_Constraint(c2, "CON.2\nFraud after validation before routing")
+Motivation_Constraint(c3, "CON.3\nDefined Payment states only")
+Motivation_Constraint(c4, "CON.4\nAsync signed webhooks")
+Motivation_Constraint(c5, "CON.5\nQueries use gateway data")
+Rel_Association(stakeholder, driver, "association")
+Rel_Influence(driver, goal, "influence")
+Rel_Association(goal, outcome, "association")
+Rel_Influence(c1, goal, "constrains")
+Rel_Influence(c2, goal, "constrains")
+Rel_Influence(c3, goal, "constrains")
+Rel_Influence(c4, goal, "constrains")
+Rel_Influence(c5, goal, "constrains")
+legend bottom
+ArchiMate only. G1 evidence: goal, outcome, and CON.1-CON.5.
+endlegend
+@enduml

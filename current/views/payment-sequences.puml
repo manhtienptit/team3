@@ -1,0 +1,175 @@
+@startuml payment-sequences
+caption Viewpoint: UML Sequence | To-Be | R=Dev A=SA C=Test,BA,Sec I=Owner,Ops | Status Draft
+hide footbox
+
+== US-01 Authorize a payment ==
+actor Merchant
+participant "Payment API" as API
+participant "Payment Orchestrator" as ORCH
+participant "Payment Store" as STORE
+participant "Fraud Engine" as FRAUD
+participant "Acquirer Connector" as CONNECTOR
+participant Acquirer
+participant "Webhook Event Queue" as QUEUE
+Merchant -> API: POST /payments capture=false + key
+API -> ORCH: validate request
+ORCH -> STORE: find idempotency key
+alt duplicate key
+  STORE --> ORCH: original result
+  ORCH --> API: return original result
+else new key
+  ORCH -> FRAUD: evaluate authorization
+  alt fraud block
+    FRAUD --> ORCH: block
+    ORCH -> STORE: save Declined
+    ORCH ->> QUEUE: publish payment.declined
+    ORCH --> API: Declined
+  else fraud pass
+    FRAUD --> ORCH: pass
+    ORCH -> CONNECTOR: authorize same reference
+    CONNECTOR -> Acquirer: authorize (sync)
+    alt issuer approves
+      Acquirer --> CONNECTOR: auth code
+      CONNECTOR --> ORCH: approved
+      ORCH -> STORE: save Authorized
+      ORCH ->> QUEUE: publish payment.authorized
+      ORCH --> API: Authorized
+    else issuer declines
+      Acquirer --> CONNECTOR: decline reason
+      CONNECTOR --> ORCH: declined
+      ORCH -> STORE: save Declined
+      ORCH ->> QUEUE: publish payment.declined
+      ORCH --> API: Declined
+    else timeout / unknown outcome
+      Acquirer --> CONNECTOR: timeout
+      CONNECTOR -> Acquirer: retry or poll same reference
+      alt retry exhausted
+        CONNECTOR --> ORCH: failed
+        ORCH -> STORE: save Failed
+        ORCH ->> QUEUE: publish payment.failed
+        ORCH --> API: Failed
+      end
+    end
+  end
+end
+
+== US-02 Direct charge ==
+actor Merchant2 as Merchant
+participant "Payment API" as API2
+participant "Payment Orchestrator" as ORCH2
+participant "Payment Store" as STORE2
+participant "Fraud Engine" as FRAUD2
+participant "Acquirer Connector" as CONNECTOR2
+participant Acquirer2 as Acquirer
+Merchant2 -> API2: POST /payments capture=true + key
+API2 -> ORCH2: validate and idempotency check
+ORCH2 -> FRAUD2: evaluate authorization
+alt fraud or issuer decline
+  FRAUD2 --> ORCH2: block or decline
+  ORCH2 --> API2: Declined; no capture
+else authorization approved
+  FRAUD2 --> ORCH2: pass
+  ORCH2 -> CONNECTOR2: authorize same reference
+  CONNECTOR2 -> Acquirer: authorize
+  Acquirer --> CONNECTOR2: approved
+  ORCH2 -> STORE2: record internal Authorized
+  ORCH2 -> CONNECTOR2: immediate capture same reference
+  CONNECTOR2 -> Acquirer: capture
+  alt capture succeeds
+    Acquirer --> CONNECTOR2: captured
+    ORCH2 -> STORE2: save Captured
+    ORCH2 --> API2: Captured
+  else capture fails
+    Acquirer --> CONNECTOR2: rejected
+    ORCH2 -> STORE2: retain Authorized
+    ORCH2 --> API2: Authorized; retry capture
+  end
+end
+
+== US-03 Capture ==
+actor Merchant3 as Merchant
+participant "Payment API" as API3
+participant "Payment Orchestrator" as ORCH3
+participant "Payment Store" as STORE3
+participant "Acquirer Connector" as CONNECTOR3
+participant Acquirer3 as Acquirer
+Merchant3 -> API3: POST /payments/id/capture + key
+API3 -> ORCH3: validate state and amount
+alt state != Authorized or amount exceeds authorized
+  ORCH3 --> API3: invalid-state or invalid-amount error
+else valid
+  ORCH3 -> STORE3: idempotency lookup
+  alt duplicate key
+    STORE3 --> ORCH3: original result
+    ORCH3 --> API3: original result
+  else new key
+    ORCH3 -> CONNECTOR3: capture same reference
+    CONNECTOR3 -> Acquirer: capture (sync)
+    alt success
+      Acquirer --> CONNECTOR3: captured
+      ORCH3 -> STORE3: save Captured
+      ORCH3 --> API3: Captured
+    else failure / timeout
+      Acquirer --> CONNECTOR3: rejected or unknown
+      ORCH3 -> STORE3: retain Authorized
+      ORCH3 --> API3: retryable capture failure
+    end
+  end
+end
+
+== US-04 Void ==
+actor Merchant4 as Merchant
+participant "Payment API" as API4
+participant "Payment Orchestrator" as ORCH4
+participant "Payment Store" as STORE4
+participant "Acquirer Connector" as CONNECTOR4
+participant Acquirer4 as Acquirer
+Merchant4 -> API4: POST /payments/id/void + key
+API4 -> ORCH4: validate state
+alt state != Authorized
+  ORCH4 --> API4: invalid-state error
+else valid
+  ORCH4 -> STORE4: idempotency lookup
+  ORCH4 -> CONNECTOR4: void same reference
+  CONNECTOR4 -> Acquirer: void (sync)
+  Acquirer --> CONNECTOR4: voided
+  ORCH4 -> STORE4: save Voided
+  ORCH4 --> API4: Voided
+end
+
+== US-05 Refund ==
+actor Merchant5 as Merchant
+participant "Payment API" as API5
+participant "Payment Orchestrator" as ORCH5
+participant "Payment Store" as STORE5
+participant "Acquirer Connector" as CONNECTOR5
+participant Acquirer5 as Acquirer
+Merchant5 -> API5: POST /payments/id/refund + key
+API5 -> ORCH5: validate state and remaining amount
+alt state != Captured or amount exceeds remaining
+  ORCH5 --> API5: invalid-state or invalid-amount error
+else valid
+  ORCH5 -> STORE5: idempotency lookup
+  ORCH5 -> CONNECTOR5: refund same reference
+  CONNECTOR5 -> Acquirer: refund (sync)
+  Acquirer --> CONNECTOR5: refunded
+  alt full refund
+    ORCH5 -> STORE5: save Refunded
+  else partial refund
+    ORCH5 -> STORE5: update refundedAmount; retain Captured
+  end
+  ORCH5 --> API5: refund result
+end
+
+== US-09 Query ==
+actor Merchant6 as Merchant
+participant "Payment API" as API6
+participant "Query Store" as QUERY
+Merchant6 -> API6: GET /payments/id or list filters
+API6 -> QUERY: read local projection
+QUERY --> API6: payment object / page
+API6 --> Merchant6: response
+note over API6, QUERY
+No Acquirer, Card Network, or Issuing Bank call.
+end note
+@enduml

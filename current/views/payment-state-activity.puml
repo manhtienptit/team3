@@ -1,0 +1,44 @@
+@startuml payment-state-activity
+caption Viewpoint: UML State and Activity | To-Be | R=Test A=BA C=SA,Dev,Sec I=Owner,Ops | Status Draft
+
+state "Payment" as Payment {
+  [*] --> Pending
+  Pending --> Authorized: issuer approves
+  Pending --> Declined: fraud block or issuer decline
+  Pending --> Failed: system error / retry exhausted
+  Authorized --> Captured: capture succeeds
+  Authorized --> Voided: void succeeds
+  Captured --> Captured: partial refund / update refundedAmount
+  Captured --> Refunded: full refund succeeds
+  Voided --> [*]
+  Refunded --> [*]
+  Declined --> [*]
+  Failed --> [*]
+}
+
+newpage
+start
+:Receive payment operation;
+:Validate request and idempotency key;
+if (Duplicate key?) then (yes)
+  :Return original result;
+  stop
+else (no)
+endif
+if (Authorization or direct charge?) then (yes)
+  :Fraud Engine pass/fail;
+  if (Fraud block?) then (block)
+    :Declined; publish async event;
+    stop
+  endif
+endif
+:Call Acquirer Connector;
+if (Acquirer outcome?) then (approved)
+  :Apply operation-specific state transition;
+else (declined or failed)
+  :Record Declined or Failed;
+endif
+:Persist Payment and project Query Store;
+:Publish Webhook Event Queue event without waiting;
+stop
+@enduml

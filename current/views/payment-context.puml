@@ -1,0 +1,19 @@
+@startuml payment-context
+!include <C4/C4_Context>
+title Online Payment Gateway - C4 Context (L1)
+caption Viewpoint: C4 Context | To-Be | R=SA A=Owner C=BA,Sec I=Dev,Test,Ops | Status Draft
+LAYOUT_LEFT_RIGHT()
+Person(merchant, "Merchant", "Initiates payment operations and receives webhooks")
+Person(customer, "Customer", "Cardholder / payer")
+System(paymentGateway, "Online Payment Gateway", "Processes payment operations and owns Payment lifecycle")
+System_Ext(acquirer, "Acquirer", "Routes payment instructions")
+System_Ext(network, "Card Network", "Routes transactions")
+System_Ext(issuer, "Issuing Bank", "Approves or declines authorization")
+Rel(merchant, paymentGateway, "submits commands and queries; receives webhooks")
+Rel(customer, paymentGateway, "payment method funds are represented")
+Rel(paymentGateway, acquirer, "routes authorization, capture, void, and refund")
+Rel(acquirer, network, "routes transaction")
+Rel(network, issuer, "requests approval or funds action")
+Rel(issuer, network, "returns outcome")
+SHOW_LEGEND()
+@enduml

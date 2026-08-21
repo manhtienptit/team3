@@ -27,11 +27,8 @@ Guide: [lab7/list.md](../lab7/list.md), adopted as written
 |---|---|---|---|
 | Merchant | Business Actor | Person | Initiates payment operations and receives webhooks. |
 | Customer | Business Actor | Person | Cardholder / payer. |
-| Acquirer | Application Component | System | Routes payment operations toward the card network. |
-| Card Network | Application Component | System | Routes transactions between Acquirer and Issuing Bank. |
-| Issuing Bank | Application Component | System | Approves or declines authorization and releases or credits funds. |
-| Fraud Engine | Application Component | System | Rule-based pass/fail gate on authorization only. |
-| Webhook Service | Application Component | System | Delivers asynchronous signed events to Merchant. |
+| Acquirer contact | Business Role | — | External payment processor contacted by the gateway. |
+| Merchant webhook consumer | Business Role | — | Merchant-side responsibility for receiving webhook events. |
 
 ### I-3 External systems
 
@@ -41,7 +38,7 @@ Guide: [lab7/list.md](../lab7/list.md), adopted as written
 | Card Network | Routes instructions and responses. |
 | Issuing Bank | Decides authorization and handles the customer funds hold or credit. |
 
-Merchant webhook endpoint is a Merchant-owned endpoint represented by the Merchant actor; it is not a new system name.
+The external-system list is deliberately limited to systems outside Online Payment Gateway. Fraud Engine and Webhook Service are internal supporting services and are defined only in I-4.
 
 ### I-4 Internal containers
 
@@ -55,6 +52,8 @@ Merchant webhook endpoint is a Merchant-owned endpoint represented by the Mercha
 | Acquirer Connector | Sends idempotent synchronous commands to Acquirer and handles response correlation. |
 | Webhook Event Queue | Asynchronous buffer for status-change events. |
 | Webhook Service | Signs, delivers, retries, and records webhook outcomes. |
+
+These names are the internal application/container identity set for the before pack. The before pack permits the current drawing style, but downstream diagrams must use these exact strings once a container view is drawn.
 
 ### I-5 Business process
 
@@ -147,20 +146,13 @@ Forbidden path: Webhook Event Queue or Webhook Service must not write Payment St
 
 Optional C4 Component container: `Payment Orchestrator`.
 
-## Lab 7 - Adoption record
+## Lab 7 status
 
-| Roster role | Assigned team role |
-|---|---|
-| EA | Team 3 architecture owner |
-| SA | Team 3 solution designer |
-| Dev | Team 3 delivery designer |
-| Test | Team 3 quality designer |
-
-Team 3 adopts the Guide in [lab7/list.md](../lab7/list.md) as written. G1-G6 are the only quality gates. The Guide RACI is copied to every after-pack diagram header. Lab 3 is N/A: this is a drawing pack with no implementation, automated tests, or runtime stand-up.
+N/A in the before pack. The Lab 7 Guide, G1-G6 adoption record, and standardized RACI belong to the `current` after pack.
 
 ## Lab 2 - Requirements and traceability
 
-The requirements are maintained in [Requirements.md](Requirements.md). US-01 through US-09 and NFR-01 through NFR-05 are in scope. The following trace ensures each Lab 1 goal and constraint is represented.
+The requirements are maintained in [Requirements.md](Requirements.md), and their reasoning is maintained in [Analysis.md](Analysis.md). This before-pack Lab 2 uses the team's pre-Lab 7 language; it does not apply the Guide's G1-G6 register. US-01 through US-09 and NFR-01 through NFR-05 are in scope. The following trace ensures each Lab 1 goal and constraint is represented.
 
 | Requirement | Process step | Constraint | Payment state / evidence |
 |---|---|---|---|
@@ -174,18 +166,11 @@ The requirements are maintained in [Requirements.md](Requirements.md). US-01 thr
 | R-08 Deliver signed events asynchronously with retry | 6-7 | CON.4 | WebhookEvent delivery states are separate from Payment |
 | R-09 Serve payment queries locally | 5 | CON.5 | Query Store is the read source |
 
-### After-pass gate register
+### Lab 2 analysis result
 
-| Gate | Product pass rule | Evidence artifact | Pass? |
-|---|---|---|---|
-| G1 | Goal, outcome, and CON.1-CON.5 are recorded before solution design. | `payment-motivation.puml`, I-1, I-10 | Pass |
-| G2 | Business process steps and Payment states use the same named lifecycle. | `payment-business-process.puml`, `payment-state.puml` | Pass |
-| G3 | Context and container names match this identity index; sync/async edges and external boundaries are explicit. | `payment-context.puml`, `payment-container.puml` | Pass |
-| G4 | Every container relationship has a Payment API/Webhook Contract entry to be produced before integration coding. | [Contract-Checklist.md](Contract-Checklist.md) | Pass as checklist |
-| G5 | Fraud block, timeout, invalid transition, and delivery failure compensating paths are modeled. | UML sequence alts and failure-path table | Pass |
-| G6 | Every state transition and sequence alt has a planned test scenario. | G6 coverage checklist below | Pass as planned coverage |
+The as-is pain is fragmented payment operations and unclear status ownership. The to-be analysis identifies one gateway-owned Payment lifecycle, an authorization fraud gate, idempotent write handling, a local query source, and asynchronous webhook delivery. Exception paths are named in Analysis.md: fraud block, issuer decline, acquirer timeout, invalid transition, partial capture/refund, and failed webhook delivery.
 
-G4-G6 are design checklists only. They are not implementation or execution evidence.
+The before pack records requirements and analysis only. Quality-gate adoption is intentionally deferred to the current after pack.
 
 ## Lab 4 - After-pack comparison
 

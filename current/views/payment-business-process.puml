@@ -1,0 +1,29 @@
+@startuml payment-business-process
+!include <archimate/Archimate>
+title Online Payment Processing - Business Process
+caption Viewpoint: ArchiMate Business Process | Layer: Business | To-Be | R=BA A=Owner C=SA,Sec,Test I=Dev,Ops | Status Draft
+top to bottom direction
+Business_Actor(merchant, "Merchant")
+Business_Process(receive, "Receive payment operation")
+Business_Process(validate, "Validate request and idempotency")
+Business_Process(fraud, "Authorization fraud gate")
+Business_Process(route, "Route operation to Acquirer")
+Business_Process(record, "Record Payment lifecycle state")
+Business_Process(publish, "Publish status-change event")
+Business_Process(deliver, "Deliver signed webhook")
+Business_Process(query, "Serve payment query from gateway data")
+Business_Object(payment, "Payment")
+Rel_Assignment(merchant, receive, "initiates")
+Rel_Triggering(receive, validate, "triggers")
+Rel_Triggering(validate, fraud, "CON.2: authorization only")
+Rel_Triggering(fraud, route, "pass")
+Rel_Triggering(fraud, record, "block -> Declined")
+Rel_Triggering(route, record, "approved / declined / failed")
+Rel_Triggering(record, publish, "CON.4: async")
+Rel_Triggering(publish, deliver, "async queue")
+Rel_Access(record, payment, "writes")
+Rel_Access(query, payment, "reads gateway data")
+legend bottom
+ArchiMate only. G2 evidence: Payment lifecycle states and CON.2/CON.4 decision branches.
+endlegend
+@enduml

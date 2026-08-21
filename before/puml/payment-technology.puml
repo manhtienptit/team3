@@ -1,0 +1,32 @@
+@startuml payment-technology
+!include <archimate/Archimate>
+title Online Payment Processing - Technology
+caption Viewpoint: ArchiMate Technology | Layer: Technology | To-Be | R=Ops A=SA C=Sec,Dev I=Owner,BA,Test | Status Draft
+left to right direction
+Technology_Node(gateway, "Gateway runtime")
+Technology_Node(data, "Gateway data storage")
+Technology_Node(messaging, "Gateway messaging")
+Technology_Node(merchantEnv, "Merchant environment")
+Technology_Node(paymentLandscape, "External payment landscape")
+Application_Component(api, "Payment API")
+Application_Component(orch, "Payment Orchestrator")
+Application_Component(store, "Payment Store")
+Application_Component(query, "Query Store")
+Application_Component(queue, "Webhook Event Queue")
+Application_Component(webhook, "Webhook Service")
+Application_Component(acquirer, "Acquirer")
+Application_Component(merchant, "Merchant")
+Rel_Realization(gateway, api, "hosts")
+Rel_Realization(gateway, orch, "hosts")
+Rel_Realization(data, store, "hosts")
+Rel_Realization(data, query, "hosts")
+Rel_Realization(messaging, queue, "hosts")
+Rel_Realization(gateway, webhook, "hosts")
+Rel_Realization(paymentLandscape, acquirer, "hosts external")
+Rel_Serving(webhook, merchant, "signed async delivery")
+Rel_Flow(orch, queue, "status event")
+Rel_Flow(orch, acquirer, "sync command")
+legend bottom
+ArchiMate only. Forbidden: Webhook Event Queue or Webhook Service writes Payment Store.
+endlegend
+@enduml

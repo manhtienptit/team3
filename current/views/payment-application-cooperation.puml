@@ -1,0 +1,30 @@
+@startuml payment-application-cooperation
+!include <archimate/Archimate>
+title Online Payment Processing - Application Cooperation
+caption Viewpoint: ArchiMate Application Cooperation | Layer: Application | To-Be | R=SA A=Owner C=DA,Sec,Dev I=BA,Test,Ops | Status Draft
+left to right direction
+Application_Component(api, "Payment API")
+Application_Component(orch, "Payment Orchestrator")
+Application_Component(store, "Payment Store")
+Application_Component(query, "Query Store")
+Application_Component(fraud, "Fraud Engine")
+Application_Component(connector, "Acquirer Connector")
+Application_Component(queue, "Webhook Event Queue")
+Application_Component(webhook, "Webhook Service")
+Application_Component(acquirer, "Acquirer")
+Application_Component(network, "Card Network")
+Application_Component(issuer, "Issuing Bank")
+Rel_Serving(api, orch, "commands and queries")
+Rel_Serving(orch, store, "persist lifecycle")
+Rel_Serving(orch, query, "project read view")
+Rel_Serving(orch, fraud, "authorization gate only")
+Rel_Serving(orch, connector, "auth/capture/void/refund")
+Rel_Serving(orch, queue, "async status event")
+Rel_Serving(webhook, queue, "consume event")
+Rel_Serving(connector, acquirer, "payment instruction")
+Rel_Serving(acquirer, network, "route")
+Rel_Serving(network, issuer, "authorize / release / credit")
+legend bottom
+ArchiMate only. Same application names as C4 Container. Queue is the async boundary.
+endlegend
+@enduml

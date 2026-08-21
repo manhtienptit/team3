@@ -1,0 +1,33 @@
+@startuml payment-container
+!include <C4/C4_Container>
+title Online Payment Gateway - C4 Container (L2)
+caption Viewpoint: C4 Container | To-Be | R=SA A=SA C=DA,Sec,Dev,Ops I=Owner,BA,Test | Status Draft
+LAYOUT_LEFT_RIGHT()
+Person(merchant, "Merchant", "Initiates operations and receives webhooks")
+System_Ext(acquirer, "Acquirer", "External payment processor")
+System_Ext(network, "Card Network", "External transaction route")
+System_Ext(issuer, "Issuing Bank", "External authorization decision")
+System_Boundary(gateway, "Online Payment Gateway") {
+  Container(api, "Payment API", "API", "Validates commands and serves queries")
+  Container(orch, "Payment Orchestrator", "Application service", "Idempotency, lifecycle, and operation coordination")
+  ContainerDb(store, "Payment Store", "Data store", "Payment and PaymentMethod write source of truth")
+  ContainerDb(query, "Query Store", "Read model", "Gateway-owned payment detail and list queries")
+  Container(fraud, "Fraud Engine", "Rule service", "Authorization-only pass/fail gate")
+  Container(connector, "Acquirer Connector", "Adapter", "Sync idempotent auth/capture/void/refund commands")
+  ContainerQueue(queue, "Webhook Event Queue", "Message queue", "Async status-change event buffer")
+  Container(webhook, "Webhook Service", "Worker", "HMAC signing, delivery, retry, and delivery records")
+}
+Rel(merchant, api, "commands and queries", "HTTPS sync")
+Rel(api, orch, "validated command / query", "sync")
+Rel(orch, store, "read/write Payment", "sync")
+Rel(orch, query, "project status view", "sync")
+Rel(orch, fraud, "evaluate authorization", "sync; auth only")
+Rel(orch, connector, "authorize, capture, void, refund", "sync")
+Rel(connector, acquirer, "payment instruction", "sync; idempotent reference")
+Rel(acquirer, network, "route", "sync")
+Rel(network, issuer, "authorize / release / credit", "sync")
+Rel(orch, queue, "publish status event", "async")
+Rel(queue, webhook, "consume status event", "async")
+Rel(webhook, merchant, "deliver signed event", "async; retry")
+SHOW_LEGEND()
+@enduml

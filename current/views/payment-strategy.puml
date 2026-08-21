@@ -1,0 +1,20 @@
+@startuml payment-strategy
+!include <archimate/Archimate>
+title Online Payment Processing - Strategy
+caption Viewpoint: ArchiMate Strategy | Layer: Strategy | To-Be | R=EA A=Owner C=SA,Sec I=Dev,Test,Ops | Status Draft
+left to right direction
+Strategy_Resource(capability, "Capability\nPayment lifecycle management")
+Strategy_Capability(apiCapability, "Capability\nMerchant payment API")
+Strategy_Capability(notificationCapability, "Capability\nWebhook notification")
+Strategy_CourseOfAction(action, "Course of Action\nOrchestrate idempotent payment operations")
+Strategy_Resource(resource, "Resource\nGateway-owned Payment and Query data")
+Strategy_ValueStream(stream, "Value Stream\nMerchant payment completion")
+Rel_Composition(stream, action, "includes")
+Rel_Realization(action, capability, "realizes")
+Rel_Realization(apiCapability, capability, "realizes")
+Rel_Realization(notificationCapability, capability, "realizes")
+Rel_Association(action, resource, "uses")
+legend bottom
+ArchiMate only. G1: strategy capability, course of action, and outcome are aligned.
+endlegend
+@enduml
