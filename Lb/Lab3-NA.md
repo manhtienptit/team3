@@ -6,9 +6,9 @@
 
 ## Status: N/A
 
-**"Drawing pack; no implementation."**
+**Drawing pack; no implementation.**
 
-This pack stops at G3 (C4 Context + Container modeled). Lab 3 deliverables are explicitly excluded per the Guide.
+This submission is architecture and design models only (Labs 1–2, 4–10). No running system is built or delivered.
 
 ---
 
@@ -24,8 +24,6 @@ This pack stops at G3 (C4 Context + Container modeled). Lab 3 deliverables are e
 
 ## Rationale
 
-The Guide states:
+Modeling scope stops at the drawings: C4 Context and Container, the named business process, the state machine, and the sequence diagrams. Nothing beyond the model is stood up.
 
-> "This pack **draws through G3**. G4–G6 are checklists on the models. You do **not** implement, code, or stand up runtime."
-
-No Docker, no Kong/Keycloak/Kafka stand-up, no source code, no test suites, no deployed stack.
+No source code, no automated test suite, no deployed stack. None of the containers named in Lab 1 (I-4) — `API Gateway`, `Payment Orchestrator`, `Idempotency Store`, `Payment Store`, `Query Store`, `Message Queue`, `Webhook Service`, `Expiry Job` — are actually installed or running.
