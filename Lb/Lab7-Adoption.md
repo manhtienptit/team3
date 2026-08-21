@@ -16,10 +16,10 @@ The team adopts the **Guide** (from list.md) as written. G1–G6 and the RACI ta
 
 | Person | Role(s) | Owns (output) |
 |--------|---------|---------------|
-| Member 1 | EA | Motivation / Strategy (Lab 8 View 1) |
-| Member 2 | SA | C4 Context + Container (Lab 9), Application Cooperation (Lab 8 View 3) |
-| Member 3 | Dev | C4 Component (Payment Orchestrator), UML Sequence (Lab 5/10) |
-| Member 4 | Test | UML State (Payment object), G6 coverage checklist |
+| Ninh Mạnh Tiến | EA | Motivation / Strategy (Lab 8 View 1) |
+| Nguyễn Quang Huy | SA | C4 Context + Container (Lab 9), Application Cooperation (Lab 8 View 3) |
+| Kim Đức Minh | Dev | C4 Component (Payment Orchestrator), UML Sequence (Lab 5/10) |
+| Trần Quốc Đạt | Test | UML State (Payment object), G6 coverage checklist |
 
 *One person may hold two roles; the artifact still has one R and one A.*
 

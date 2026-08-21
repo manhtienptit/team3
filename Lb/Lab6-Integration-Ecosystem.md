@@ -9,7 +9,7 @@ Title:      Payment Gateway Integration Ecosystem
 Viewpoint:  C4 Container (integration overlay)
 Layer(s):   Application
 As-Is | To-Be | Transition:  To-Be
-Owner:      Role SA  Name Member 2
+Owner:      Role SA  Name Nguyễn Quang Huy
 RACI:       R SA  A SA  C Sec, Ops  I Dev, Test
 Version:    v1.0  Date 2026-08-20  Status Draft
 Legend:      ─── sync; ═══ async; [label] = protocol + product label
@@ -37,10 +37,10 @@ Gateway, event bus, and adapter are drawn as **C4 Containers** (from I-4). Produ
 │           │                     sync  │  sync │       │ sync                    │
 │           │                     Redis │  SQL  │       │ HTTP                    │
 │           │                           │       │       │                         │
-│           │                    ┌──────▼──┐  ┌─▼──────┐│   ┌────────────────┐    │
-│           │                    │Idempot- │  │Payment ││   │ Fraud Engine   │    │
-│           │                    │ency     │  │Store   ││   │ [in-process]   │    │
-│           │                    │Store    │  │(Write) ││   └────────────────┘    │
+│           │                    ┌──────▼──┐  ┌─▼──────┐│                         │
+│           │                    │Idempot- │  │Payment ││   (fraud module runs    │
+│           │                    │ency     │  │Store   ││   in-process inside     │
+│           │                    │Store    │  │(Write) ││   Payment Orchestrator) │
 │           │                    │[Redis   │  │[Post-  ││                         │
 │           │                    │ 7.x]    │  │greSQL] ││                         │
 │           │                    └─────────┘  └────────┘│                         │
@@ -73,7 +73,7 @@ Gateway, event bus, and adapter are drawn as **C4 Containers** (from I-4). Produ
                           ┌──────────────────────────────┘
                           ▼
                ┌─────────────────────┐
-               │     Merchant        │
+               │  Merchant Platform  │
                │  (webhook receiver) │
                └─────────────────────┘
 
@@ -105,12 +105,11 @@ Gateway, event bus, and adapter are drawn as **C4 Containers** (from I-4). Produ
 | **Sync** | Request-Response | API Gateway → Payment Orchestrator | Internal HTTP / gRPC | Nginx or Kong |
 | **Sync** | Request-Response | Payment Orchestrator → AcquirerHost | HTTPS REST, 30s timeout, 1 retry after 5s | — |
 | **Sync** | Key-Value lookup | Payment Orchestrator → Idempotency Store | Redis GET/SET/BLPOP | Redis 7.x |
-| **Sync** | In-process call | Payment Orchestrator → Fraud Engine | Function call, < 50ms | — |
 | **Sync** | SQL query | Payment Orchestrator → Payment Store | PostgreSQL wire protocol | PostgreSQL 16 |
 | **Sync** | SQL read | API Gateway → Query Store | PostgreSQL wire protocol (read replica) | PostgreSQL 16 |
 | **Async** | Event publish | Payment Orchestrator → Message Queue | Producer API | Kafka or SQS |
 | **Async** | Event consume | Message Queue → Webhook Service | Consumer API | Kafka or SQS |
-| **Async** | Webhook delivery | Webhook Service → Merchant | HTTPS POST, HMAC-SHA256, 10s timeout | — |
+| **Async** | Webhook delivery | Webhook Service → Merchant Platform | HTTPS POST, HMAC-SHA256, 10s timeout | — |
 | **Sync** | Scheduled SQL | Expiry Job → Payment Store | PostgreSQL (batch update) | cron |
 
 ---
@@ -119,16 +118,15 @@ Gateway, event bus, and adapter are drawn as **C4 Containers** (from I-4). Produ
 
 | From | To | Label | Sync/Async |
 |------|----|-------|------------|
-| Merchant | API Gateway | HTTPS/TLS, POST/GET /v1/* | Sync |
+| Merchant Platform | API Gateway | HTTPS/TLS, POST/GET /v1/* | Sync |
 | API Gateway | Payment Orchestrator | Internal HTTP/gRPC | Sync |
 | API Gateway | Query Store | SQL (read), cursor pagination | Sync |
 | Payment Orchestrator | Idempotency Store | Redis GET/SET/BLPOP (48h TTL, 5s wait) | Sync |
-| Payment Orchestrator | Fraud Engine | In-process (< 50ms, auth only) | Sync |
 | Payment Orchestrator | AcquirerHost | HTTPS, 30s timeout + 1 retry | Sync |
 | Payment Orchestrator | Payment Store | SQL (write) | Sync |
 | Payment Orchestrator | Message Queue | Publish event (within 1s) | Async |
 | Message Queue | Webhook Service | Consume event | Async |
-| Webhook Service | Merchant | HTTPS POST, HMAC-SHA256, 10s timeout | Async |
+| Webhook Service | Merchant Platform | HTTPS POST, HMAC-SHA256, 10s timeout | Async |
 | Expiry Job | Payment Store | SQL batch (hourly, Authorized → Failed) | Sync |
 | AcquirerHost | NAPAS Switch | ISO 8583 | Sync |
 | NAPAS Switch | Issuing Bank | ISO 8583 | Sync |
@@ -154,7 +152,7 @@ Authentication and rate limiting reside on the **API Gateway** container. There 
 
 | Security concern | Handled by | Mechanism |
 |------------------|------------|-----------|
-| Merchant authentication | API Gateway | API key / Bearer token in header |
+| Merchant Platform authentication | API Gateway | API key / Bearer token in header |
 | Rate limiting | API Gateway | Per-merchant throttle |
 | TLS termination | API Gateway | TLS 1.2+ |
 | Webhook integrity | Webhook Service | HMAC-SHA256 signature |

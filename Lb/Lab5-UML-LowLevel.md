@@ -11,7 +11,7 @@ Title:      Authorize Payment — Happy Path + Exception
 Viewpoint:  UML Sequence
 Layer(s):   Delivery
 As-Is | To-Be | Transition:  To-Be
-Owner:      Role Dev  Name Member 3
+Owner:      Role Dev  Name Kim Đức Minh
 RACI:       R Dev  A SA  C Test, BA  I Ops
 Version:    v1.0  Date 2026-08-20  Status Draft
 Legend:      →  sync call; --→  async; alt = exception branch
@@ -19,13 +19,12 @@ RACI legend: R = draws · A = approves · C = consulted · I = informed
 Scope:      in-scope: US Authorize Payment / out-of-scope: capture, void, refund
 ```
 
-### Participants (⊆ I-4 containers + I-2 actors)
+### Participants (⊆ I-4 containers + I-3 externals)
 
-- Merchant
+- Merchant Platform
 - API Gateway
-- Payment Orchestrator
+- Payment Orchestrator (fraud module evaluates in-process — not a separate participant)
 - Idempotency Store
-- Fraud Engine
 - AcquirerHost
 - Payment Store
 - Message Queue
@@ -34,11 +33,10 @@ Scope:      in-scope: US Authorize Payment / out-of-scope: capture, void, refund
 
 ```plantuml
 @startuml
-actor Merchant
+actor "Merchant Platform" as Merchant
 participant "API Gateway" as APIGW
 participant "Payment Orchestrator" as Orch
 participant "Idempotency Store" as Redis
-participant "Fraud Engine" as Fraud
 participant "AcquirerHost" as Acquirer
 database "Payment Store" as PG
 queue "Message Queue" as MQ
@@ -75,18 +73,16 @@ else new key (miss)
     Orch -> Redis : SET idempotency:{key}:lock 1 EX 35 NX
 end
 
-Orch -> Fraud : evaluate(card, amount, merchant)
-note right of Fraud : 5 rules, < 50ms\nFRAUD-01→05\nFirst-block-wins
+Orch -> Orch : evaluate fraud rules (in-process)\n(card, amount, merchant)
+note right of Orch : 5 rules, < 50ms\nFRAUD-01→05\nFirst-block-wins
 
 alt fraud block (any rule triggers)
-    Fraud --> Orch : BLOCK {rule_id: "FRAUD-XX"}
     Orch -> PG : INSERT Payment(status=Declined,\ndecline_reason=fraud_rule, fraud_rule_id)
     Orch -> Redis : SET idempotency:{key} {response} EX 172800
     Orch -> MQ : publish payment.declined
     Orch --> APIGW : 200 {status: "declined"}
     APIGW --> Merchant : 200 Declined
 else fraud pass
-    Fraud --> Orch : PASS
 end
 
 Orch -> Acquirer : authorize(amount, card_ref)\ntimeout=30s
@@ -128,7 +124,7 @@ Title:      Capture Payment — Happy Path + Exception
 Viewpoint:  UML Sequence
 Layer(s):   Delivery
 As-Is | To-Be | Transition:  To-Be
-Owner:      Role Dev  Name Member 3
+Owner:      Role Dev  Name Kim Đức Minh
 RACI:       R Dev  A SA  C Test, BA  I Ops
 Version:    v1.0  Date 2026-08-20  Status Draft
 Legend:      →  sync call; alt = exception branch
@@ -138,7 +134,7 @@ Scope:      in-scope: US Capture Payment / out-of-scope: authorize, void, refund
 
 ### Participants
 
-- Merchant
+- Merchant Platform
 - API Gateway
 - Payment Orchestrator
 - Idempotency Store
@@ -150,7 +146,7 @@ Scope:      in-scope: US Capture Payment / out-of-scope: authorize, void, refund
 
 ```plantuml
 @startuml
-actor Merchant
+actor "Merchant Platform" as Merchant
 participant "API Gateway" as APIGW
 participant "Payment Orchestrator" as Orch
 participant "Idempotency Store" as Redis
@@ -218,7 +214,7 @@ Title:      Refund Payment — Happy Path + Exception
 Viewpoint:  UML Sequence
 Layer(s):   Delivery
 As-Is | To-Be | Transition:  To-Be
-Owner:      Role Dev  Name Member 3
+Owner:      Role Dev  Name Kim Đức Minh
 RACI:       R Dev  A SA  C Test, BA  I Ops
 Version:    v1.0  Date 2026-08-20  Status Draft
 Legend:      →  sync call; alt = exception branch
@@ -228,7 +224,7 @@ Scope:      in-scope: US Refund Payment / out-of-scope: authorize, capture, void
 
 ### Participants
 
-- Merchant
+- Merchant Platform
 - API Gateway
 - Payment Orchestrator
 - Idempotency Store
@@ -240,7 +236,7 @@ Scope:      in-scope: US Refund Payment / out-of-scope: authorize, capture, void
 
 ```plantuml
 @startuml
-actor Merchant
+actor "Merchant Platform" as Merchant
 participant "API Gateway" as APIGW
 participant "Payment Orchestrator" as Orch
 participant "Idempotency Store" as Redis
@@ -312,7 +308,7 @@ Title:      Payment Authorization Activity
 Viewpoint:  UML Activity
 Layer(s):   Delivery
 As-Is | To-Be | Transition:  To-Be
-Owner:      Role Test  Name Member 4
+Owner:      Role Test  Name Trần Quốc Đạt
 RACI:       R Test  A BA  C Dev, SA  I Ops
 Version:    v1.0  Date 2026-08-20  Status Draft
 Legend:      ◆ = decision; [guard] = CON.* constraint
@@ -324,7 +320,7 @@ Scope:      in-scope: authorization happy path + decisions
 @startuml
 start
 
-:Merchant submits POST /v1/payments;
+:Merchant Platform submits POST /v1/payments;
 
 :API Gateway validates input;
 if (amount 10K–500M VND AND Luhn pass AND card not expired?) then (yes)
@@ -350,7 +346,7 @@ else (miss)
   :Set in-flight lock;
 endif
 
-:Fraud Engine evaluates 5 rules;
+:Payment Orchestrator evaluates fraud rules (in-process);
 note right: FRAUD-01→05\n< 50ms [CON.3]
 
 if (any rule blocks?) then (block [CON.3])
@@ -399,7 +395,7 @@ Title:      Payment State Machine
 Viewpoint:  UML State Machine
 Layer(s):   Delivery
 As-Is | To-Be | Transition:  To-Be
-Owner:      Role Test  Name Member 4
+Owner:      Role Test  Name Trần Quốc Đạt
 RACI:       R Test  A BA  C Dev, SA  I Ops
 Version:    v1.0  Date 2026-08-20  Status Draft
 Legend:      → transition; [guard]; terminal = double-circle
@@ -490,11 +486,10 @@ end note
 
 | Sequence Lifeline | Matches I-4 / I-2 / I-3? | String |
 |-------------------|---------------------------|--------|
-| Merchant | I-2 Actor | ✓ Merchant |
+| Merchant Platform | I-3 External | ✓ Merchant Platform |
 | API Gateway | I-4 Container | ✓ API Gateway |
 | Payment Orchestrator | I-4 Container | ✓ Payment Orchestrator |
 | Idempotency Store | I-4 Container | ✓ Idempotency Store |
-| Fraud Engine | I-4 Container | ✓ Fraud Engine |
 | AcquirerHost | I-3 External | ✓ AcquirerHost |
 | Payment Store | I-4 Container | ✓ Payment Store |
 | Message Queue | I-4 Container | ✓ Message Queue |

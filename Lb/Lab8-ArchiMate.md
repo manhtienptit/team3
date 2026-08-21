@@ -12,7 +12,7 @@ Title:      Payment Gateway — Motivation
 Viewpoint:  ArchiMate Motivation
 Layer(s):   Strategy
 As-Is | To-Be | Transition:  To-Be
-Owner:      Role EA  Name Member 1
+Owner:      Role EA  Name Ninh Mạnh Tiến
 RACI:       R EA  A Owner  C SA, BA, Sec  I Dev, Test, Ops
 Version:    v1.0  Date 2026-08-20  Status Draft
 Legend:      ──▶ realization; ──▷ influence; ──association
@@ -64,7 +64,7 @@ Scope:      in-scope: Goal, Outcome, Constraints (CON.1–CON.8) / out-of-scope:
 │  │  CON.5  Max 10 partial refunds per payment within 180 days          │    │
 │  │  CON.6  Acquirer timeout 30s + 1 retry after 5s                     │    │
 │  │  CON.7  Webhook: 7 attempts, HMAC-SHA256, 30d event TTL            │    │
-│  │  CON.8  Single acquirer AcquirerHost via NAPAS (domestic Visa/MC)     │    │
+│  │  CON.8  Single acquirer AcquirerHost via NAPAS Switch (domestic Visa/MC) │  │
 │  │                                                                     │    │
 │  └─────────────────────────────────────────────────────────────────────┘    │
 │                                                                             │
@@ -183,7 +183,7 @@ Title:      Payment Gateway — Application Cooperation
 Viewpoint:  ArchiMate Application Cooperation
 Layer(s):   Application
 As-Is | To-Be | Transition:  To-Be
-Owner:      Role SA  Name Member 2
+Owner:      Role SA  Name Nguyễn Quang Huy
 RACI:       R SA  A Owner  C DA, Sec  I Dev, Test
 Version:    v1.0  Date 2026-08-20  Status Draft
 Legend:      ─── flow; names = I-4 containers (same strings as C4 Container)
@@ -204,11 +204,11 @@ Scope:      in-scope: internal containers cooperation / out-of-scope: UML messag
 │   └───────┬───────┘       └───┬─────┬─────┬─────┬────┘                    │
 │           │                   │     │     │     │                           │
 │           │                   │     │     │     │                           │
-│   ┌───────▼───────┐   ┌──────▼──┐  │  ┌──▼─────────┐  ┌──────────────┐   │
-│   │  Query Store  │   │Idempot- │  │  AcquirerHost│  │Fraud Engine  │   │
-│   │  (Read)       │   │ency     │  │  (external)  │  │              │   │
-│   │               │   │Store    │  │              │  │              │   │
-│   └───────────────┘   └─────────┘  │  └────────────┘  └──────────────┘   │
+│   ┌───────▼───────┐   ┌──────▼──┐  │  ┌──▼─────────┐                    │
+│   │  Query Store  │   │Idempot- │  │  AcquirerHost│  (fraud module runs │
+│   │  (Read)       │   │ency     │  │  (external)  │  in-process inside │
+│   │               │   │Store    │  │              │  Payment           │
+│   └───────────────┘   └─────────┘  │  └────────────┘  Orchestrator)    │
 │                                     │                                       │
 │                              ┌──────▼──────┐                                │
 │                              │Payment Store│                                │
@@ -223,10 +223,11 @@ Scope:      in-scope: internal containers cooperation / out-of-scope: UML messag
 │                              │Webhook Service  │                            │
 │                              └──────┬──────────┘                            │
 │                                     │                                       │
-│                              ┌──────▼──────┐                                │
-│                              │  Merchant   │                                │
-│                              │  (external) │                                │
-│                              └─────────────┘                                │
+│                              ┌───────────────┐                              │
+│                              │ Merchant      │                              │
+│                              │ Platform      │                              │
+│                              │ (external)    │                              │
+│                              └───────────────┘                              │
 │                                                                             │
 │   ┌──────────────┐                                                          │
 │   │  Expiry Job  │────────────▶ Payment Store                               │
@@ -271,7 +272,8 @@ Scope:      in-scope: deployment locations (I-9) / out-of-scope: channel writing
 │  «Node» Application Tier (2+ nodes)                                         │
 │  ┌─────────────────────▼───────────────────┐                                │
 │  │  API Gateway                            │                                │
-│  │  Payment Orchestrator + Fraud Engine    │                                │
+│  │  Payment Orchestrator (incl. fraud      │                                │
+│  module, in-process)                    │                                │
 │  │  [stateless, horizontal scaling]        │                                │
 │  └──────┬──────────────┬──────────────┬────┘                                │
 │         │              │              │                                      │
@@ -295,7 +297,7 @@ Scope:      in-scope: deployment locations (I-9) / out-of-scope: channel writing
 │  └────────────────────────┘                                                  │
 │                                                                             │
 │  «Forbidden path»: Webhook Service ──✗──▶ Payment Store (direct write)      │
-│  «Forbidden path»: Merchant ──✗──▶ AcquirerHost (direct call)        │
+│  «Forbidden path»: Merchant Platform ──✗──▶ AcquirerHost (direct call)     │
 │                                                                             │
 └─────────────────────────────────────────────────────────────────────────────┘
 ```

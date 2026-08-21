@@ -11,7 +11,7 @@ Title:      Authorize Payment — Sequence with Component Detail
 Viewpoint:  UML Sequence
 Layer(s):   Delivery
 As-Is | To-Be | Transition:  To-Be
-Owner:      Role Dev  Name Member 3
+Owner:      Role Dev  Name Kim Đức Minh
 RACI:       R Dev  A SA  C Test, BA  I Ops
 Version:    v1.0  Date 2026-08-20  Status Draft
 Legend:      → sync; --→ async; alt = exception; note = CON.*; component modules inside Payment Orchestrator only
@@ -25,7 +25,7 @@ All participants ⊆ I-4 / I-2 / I-3 (Lab 9 Container names). Component modules 
 
 ```plantuml
 @startuml
-actor "Merchant" as Merchant
+actor "Merchant Platform" as Merchant
 participant "API Gateway" as APIGW
 box "Payment Orchestrator" #LightBlue
   participant "Request Handler" as ReqHandler
@@ -38,7 +38,6 @@ box "Payment Orchestrator" #LightBlue
   participant "Event Publisher" as EventPub
 end box
 participant "Idempotency Store" as Redis
-participant "Fraud Engine" as FraudEng
 participant "AcquirerHost" as Acquirer
 database "Payment Store" as PG
 queue "Message Queue" as MQ
@@ -62,11 +61,9 @@ Redis --> IdempMgr : OK (lock acquired)
 IdempMgr --> ReqHandler : proceed (new request)
 
 ReqHandler -> FraudGate : evaluate(card, amount, merchant_id)
-FraudGate -> FraudEng : applyRules(card_hash, amount, merchant_id)
-note right: [CON.3] 5 rules, < 50ms, auth only\nFRAUD-01→05, first-block-wins
-FraudEng -> Redis : GET fraud counters (velocity, daily)
-Redis --> FraudEng : counter values
-FraudEng --> FraudGate : PASS
+note right: [CON.3] 5 rules, < 50ms, auth only\nFRAUD-01→05, first-block-wins (in-process)
+FraudGate -> Redis : GET fraud counters (velocity, daily)
+Redis --> FraudGate : counter values
 FraudGate --> ReqHandler : pass
 
 ReqHandler -> StateMachine : validateTransition(null → Pending)
@@ -99,7 +96,6 @@ APIGW --> Merchant : 201 Authorized
 
 == alt: Fraud Block [CON.3] ==
 
-FraudEng --> FraudGate : BLOCK {rule_id: "FRAUD-02"}
 FraudGate --> ReqHandler : blocked(FRAUD-02)
 ReqHandler -> PersistMgr : persist(Payment{status:Declined, fraud_rule, FRAUD-02})
 PersistMgr -> PG : INSERT
@@ -155,7 +151,7 @@ Title:      Capture Payment — Sequence with Component Detail
 Viewpoint:  UML Sequence
 Layer(s):   Delivery
 As-Is | To-Be | Transition:  To-Be
-Owner:      Role Dev  Name Member 3
+Owner:      Role Dev  Name Kim Đức Minh
 RACI:       R Dev  A SA  C Test, BA  I Ops
 Version:    v1.0  Date 2026-08-20  Status Draft
 Legend:      → sync; alt = exception; component modules inside Payment Orchestrator only
@@ -167,7 +163,7 @@ Scope:      in-scope: Capture Payment use case (I-11) / out-of-scope: authorize,
 
 ```plantuml
 @startuml
-actor "Merchant" as Merchant
+actor "Merchant Platform" as Merchant
 participant "API Gateway" as APIGW
 box "Payment Orchestrator" #LightBlue
   participant "Request Handler" as ReqHandler
@@ -182,7 +178,7 @@ participant "AcquirerHost" as Acquirer
 database "Payment Store" as PG
 queue "Message Queue" as MQ
 
-note over FraudEng: Fraud Engine NOT a participant\n[CON.3] — not on capture path
+note over ReqHandler: Fraud module [CON.3] — not on capture path
 
 == Happy Path ==
 
@@ -269,7 +265,7 @@ Title:      Refund Payment — Sequence with Component Detail
 Viewpoint:  UML Sequence
 Layer(s):   Delivery
 As-Is | To-Be | Transition:  To-Be
-Owner:      Role Dev  Name Member 3
+Owner:      Role Dev  Name Kim Đức Minh
 RACI:       R Dev  A SA  C Test, BA  I Ops
 Version:    v1.0  Date 2026-08-20  Status Draft
 Legend:      → sync; alt = exception; component modules inside Payment Orchestrator only
@@ -281,7 +277,7 @@ Scope:      in-scope: Refund Payment use case (I-11) / out-of-scope: authorize, 
 
 ```plantuml
 @startuml
-actor "Merchant" as Merchant
+actor "Merchant Platform" as Merchant
 participant "API Gateway" as APIGW
 box "Payment Orchestrator" #LightBlue
   participant "Request Handler" as ReqHandler
@@ -296,7 +292,7 @@ participant "AcquirerHost" as Acquirer
 database "Payment Store" as PG
 queue "Message Queue" as MQ
 
-note over FraudEng: Fraud Engine NOT a participant\n[CON.3] — not on refund path
+note over ReqHandler: Fraud module [CON.3] — not on refund path
 
 == Happy Path (Partial Refund) ==
 
@@ -402,11 +398,10 @@ See [Lab5-UML-LowLevel.md](Lab5-UML-LowLevel.md) §5 for full diagram.
 
 | Sequence Lifeline | I-4 / I-2 / I-3 Match | Container or Actor |
 |-------------------|------------------------|--------------------|
-| Merchant | I-2 | Actor |
+| Merchant Platform | I-3 | External System |
 | API Gateway | I-4 | Container |
-| Payment Orchestrator (box) | I-4 | Container (drilled to components) |
+| Payment Orchestrator (box) | I-4 | Container (drilled to components; fraud module lives in Fraud Gate) |
 | Idempotency Store | I-4 | Container |
-| Fraud Engine | I-4 | Container (auth sequences only) |
 | AcquirerHost | I-3 | External System |
 | Payment Store | I-4 | Container |
 | Message Queue | I-4 | Container |

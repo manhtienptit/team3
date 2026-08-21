@@ -11,7 +11,7 @@ Title:      Payment Gateway — C4 System Context
 Viewpoint:  C4 Context (L1)
 Layer(s):   Application
 As-Is | To-Be | Transition:  To-Be
-Owner:      Role SA  Name Member 2
+Owner:      Role SA  Name Nguyễn Quang Huy
 RACI:       R SA  A Owner  C BA, Sec  I Dev, Test, Ops
 Version:    v1.0  Date 2026-08-20  Status Draft
 Legend:      [Person] = stick figure; [System] = box; [External] = dashed box; → relationship (what happens)
@@ -25,16 +25,18 @@ Scope:      in-scope: system-in-focus + actors + externals / out-of-scope: conta
 C4Context
   title System Context — Payment Gateway
 
-  Person(merchant, "Merchant", "Calls API to process card payments; receives webhook notifications")
+  Person(merchant, "Merchant", "Business owner of the merchant account; does not call the API directly")
 
   System(gateway, "Payment Gateway", "Processes authorization, capture, void, refund for domestic card transactions (VND only)")
 
+  System_Ext(merchantPlatform, "Merchant Platform", "Merchant's backend system; calls the API and receives webhook notifications")
   System_Ext(acquirer, "AcquirerHost", "Routes transactions to card network; returns approve/decline")
   System_Ext(napas, "NAPAS Switch", "Domestic card network connecting acquirer to issuing bank")
   System_Ext(issuer, "Issuing Bank", "Customer's bank; approves or declines; holds/releases funds")
 
-  Rel(merchant, gateway, "Submits payment requests; queries status", "HTTPS/TLS")
-  Rel(gateway, merchant, "Delivers webhook events", "HTTPS POST")
+  Rel(merchant, merchantPlatform, "Owns and operates")
+  Rel(merchantPlatform, gateway, "Submits payment requests; queries status", "HTTPS/TLS")
+  Rel(gateway, merchantPlatform, "Delivers webhook events", "HTTPS POST")
   Rel(gateway, acquirer, "Sends authorization, capture, void, refund", "HTTPS")
   Rel(acquirer, napas, "Routes card transactions", "ISO 8583")
   Rel(napas, issuer, "Forwards auth/capture/void/refund", "ISO 8583")
@@ -46,6 +48,7 @@ C4Context
 |---------|------|----------------------|
 | Person | Actor | Merchant |
 | System-in-focus | Internal | Payment Gateway |
+| External System | External | Merchant Platform |
 | External System | External | AcquirerHost |
 | External System | External | NAPAS Switch |
 | External System | External | Issuing Bank |
@@ -54,8 +57,9 @@ C4Context
 
 | From | To | Description |
 |------|----|-------------|
-| Merchant | Payment Gateway | Submits payment requests (auth, capture, void, refund); queries payment status |
-| Payment Gateway | Merchant | Delivers webhook events on status change |
+| Merchant | Merchant Platform | Owns and operates |
+| Merchant Platform | Payment Gateway | Submits payment requests (auth, capture, void, refund); queries payment status |
+| Payment Gateway | Merchant Platform | Delivers webhook events on status change |
 | Payment Gateway | AcquirerHost | Sends authorization, capture, void, refund requests |
 | AcquirerHost | NAPAS Switch | Routes card transactions |
 | NAPAS Switch | Issuing Bank | Forwards authorization/capture/void/refund |
@@ -80,7 +84,7 @@ Title:      Payment Gateway — C4 Container
 Viewpoint:  C4 Container (L2)
 Layer(s):   Application
 As-Is | To-Be | Transition:  To-Be
-Owner:      Role SA  Name Member 2
+Owner:      Role SA  Name Nguyễn Quang Huy
 RACI:       R SA  A SA  C DA, Sec, Dev, Ops  I Test
 Version:    v1.0  Date 2026-08-20  Status Draft
 Legend:      [Container] = box; [External] = dashed; ─── sync; ═══ async; protocol labeled
@@ -98,8 +102,7 @@ C4Container
 
   Container_Boundary(gw, "Payment Gateway") {
     Container(api, "API Gateway", "Nginx/Kong", "TLS termination, rate limiting, routing, input validation")
-    Container(orch, "Payment Orchestrator", "Java/Go", "Core payment logic, state machine, fraud orchestration, acquirer communication")
-    Container(fraud, "Fraud Engine", "In-process module", "5 rules, <50ms, auth path only")
+    Container(orch, "Payment Orchestrator", "Java/Go", "Core payment logic, state machine, in-process fraud module, acquirer communication")
     Container(redis, "Idempotency Store", "Redis 7.x", "Idempotency entries (48h TTL), fraud velocity counters, 5s concurrent wait")
     Container(pgwrite, "Payment Store", "PostgreSQL 16 Primary", "Payment records, webhook events, status (write)")
     Container(pgread, "Query Store", "PostgreSQL 16 Replica", "Read-only payment queries, cursor pagination")
@@ -108,20 +111,21 @@ C4Container
     Container(cron, "Expiry Job", "Scheduled hourly", "Transitions expired auths (7d) to Failed")
   }
 
+  System_Ext(merchantPlatform, "Merchant Platform", "Calls the API; receives webhooks")
   System_Ext(acquirer, "AcquirerHost", "Card transaction processing")
   System_Ext(napas, "NAPAS Switch", "Domestic card network")
   System_Ext(issuer, "Issuing Bank", "Approve/decline")
 
-  Rel(merchant, api, "POST/GET /v1/payments/*", "HTTPS/TLS [sync]")
+  Rel(merchant, merchantPlatform, "Owns and operates")
+  Rel(merchantPlatform, api, "POST/GET /v1/payments/*", "HTTPS/TLS [sync]")
   Rel(api, orch, "Forward validated requests", "HTTP/gRPC [sync]")
   Rel(api, pgread, "Query payments", "SQL [sync]")
   Rel(orch, redis, "Check/set idempotency; read fraud counters", "Redis protocol [sync]")
-  Rel(orch, fraud, "Evaluate rules (auth path only)", "In-process [sync]")
   Rel(orch, acquirer, "Auth/capture/void/refund", "HTTPS, 30s timeout + 1 retry [sync]")
   Rel(orch, pgwrite, "Persist payment state", "SQL [sync]")
   Rel(orch, queue, "Publish payment event", "Producer API [async]")
   Rel(queue, webhook, "Consume events", "Consumer API [async]")
-  Rel(webhook, merchant, "Deliver webhook", "HTTPS POST, HMAC-SHA256, 10s timeout [async]")
+  Rel(webhook, merchantPlatform, "Deliver webhook", "HTTPS POST, HMAC-SHA256, 10s timeout [async]")
   Rel(cron, pgwrite, "Find expired → update status", "SQL [sync]")
   Rel(cron, queue, "Publish payment.failed event", "Producer API [async]")
   Rel(acquirer, napas, "Route", "ISO 8583")
@@ -133,8 +137,7 @@ C4Container
 | Container Name | Technology | Sync/Async role |
 |----------------|------------|-----------------|
 | API Gateway | Nginx / Kong | Sync entry point |
-| Payment Orchestrator | Java / Go | Sync orchestrator |
-| Fraud Engine | In-process module | Sync (auth only) |
+| Payment Orchestrator | Java / Go (incl. in-process fraud module) | Sync orchestrator |
 | Idempotency Store | Redis 7.x | Sync data store |
 | Payment Store | PostgreSQL 16 Primary | Sync write |
 | Query Store | PostgreSQL 16 Replica | Sync read |
@@ -146,20 +149,19 @@ C4Container
 
 | # | From | To | Protocol | Sync/Async |
 |---|------|----|----------|------------|
-| 1 | Merchant | API Gateway | HTTPS/TLS | Sync |
+| 1 | Merchant Platform | API Gateway | HTTPS/TLS | Sync |
 | 2 | API Gateway | Payment Orchestrator | HTTP/gRPC | Sync |
 | 3 | API Gateway | Query Store | SQL | Sync |
 | 4 | Payment Orchestrator | Idempotency Store | Redis GET/SET/BLPOP | Sync |
-| 5 | Payment Orchestrator | Fraud Engine | In-process call | Sync |
-| 6 | Payment Orchestrator | AcquirerHost | HTTPS (30s + 1 retry) | Sync |
-| 7 | Payment Orchestrator | Payment Store | SQL | Sync |
-| 8 | Payment Orchestrator | Message Queue | Publish event | Async |
-| 9 | Message Queue | Webhook Service | Consume event | Async |
-| 10 | Webhook Service | Merchant | HTTPS POST (HMAC, 10s) | Async |
-| 11 | Expiry Job | Payment Store | SQL batch | Sync |
-| 12 | Expiry Job | Message Queue | Publish event | Async |
-| 13 | AcquirerHost | NAPAS Switch | ISO 8583 | Sync |
-| 14 | NAPAS Switch | Issuing Bank | ISO 8583 | Sync |
+| 5 | Payment Orchestrator | AcquirerHost | HTTPS (30s + 1 retry) | Sync |
+| 6 | Payment Orchestrator | Payment Store | SQL | Sync |
+| 7 | Payment Orchestrator | Message Queue | Publish event | Async |
+| 8 | Message Queue | Webhook Service | Consume event | Async |
+| 9 | Webhook Service | Merchant Platform | HTTPS POST (HMAC, 10s) | Async |
+| 10 | Expiry Job | Payment Store | SQL batch | Sync |
+| 11 | Expiry Job | Message Queue | Publish event | Async |
+| 12 | AcquirerHost | NAPAS Switch | ISO 8583 | Sync |
+| 13 | NAPAS Switch | Issuing Bank | ISO 8583 | Sync |
 
 ### NOT on Container (forbidden)
 
@@ -178,7 +180,7 @@ Title:      Payment Orchestrator — C4 Component
 Viewpoint:  C4 Component (L3)
 Layer(s):   Application (one container drill-down)
 As-Is | To-Be | Transition:  To-Be
-Owner:      Role Dev  Name Member 3
+Owner:      Role Dev  Name Kim Đức Minh
 RACI:       R Dev  A SA  C DA, Sec  I Test, Ops
 Version:    v1.0  Date 2026-08-20  Status Draft
 Legend:      [Component] = box inside container; [Neighbour] = grey box (black-box); → dependency
@@ -206,10 +208,10 @@ Scope:      in-scope: internals of Payment Orchestrator ONLY / out-of-scope: oth
 │  │ (check/lock/cache)  │         │  Redis — black box   │                   │
 │  └──────────┬──────────┘         └──────────────────────┘                   │
 │             │                                                               │
-│  ┌──────────▼──────────┐         ┌──────────────────────┐                   │
-│  │   Fraud Gate        │────────▶│ [Fraud Engine]       │ (neighbour)       │
-│  │ (orchestrate eval)  │         │  in-process — b.box  │                   │
-│  └──────────┬──────────┘         └──────────────────────┘                   │
+│  ┌──────────▼──────────┐                                                    │
+│  │   Fraud Gate        │  evaluates 5 rules in-process, < 50ms (CON.3)       │
+│  │ (fraud module)      │                                                    │
+│  └──────────┬──────────┘                                                    │
 │             │                                                               │
 │  ┌──────────▼──────────┐                                                    │
 │  │ State Machine       │  enforces valid transitions; rejects invalid (409) │
@@ -241,7 +243,7 @@ Scope:      in-scope: internals of Payment Orchestrator ONLY / out-of-scope: oth
 | Request Handler | Receives requests from API Gateway; routes to appropriate flow |
 | Input Validator | Validates amount (CON.1), card data (Luhn, expiry) |
 | Idempotency Manager | Check/lock/cache via Idempotency Store; 48h TTL, 5s wait (CON.2) |
-| Fraud Gate | Orchestrates Fraud Engine evaluation; auth path only (CON.3) |
+| Fraud Gate | Evaluates 5 fraud rules in-process; auth path only (CON.3) |
 | State Machine Engine | Enforces valid transitions; rejects invalid with 409 |
 | Acquirer Client | HTTP communication with AcquirerHost; 30s timeout + 1 retry (CON.6) |
 | Persistence Manager | Writes payment records to Payment Store |
@@ -252,7 +254,6 @@ Scope:      in-scope: internals of Payment Orchestrator ONLY / out-of-scope: oth
 | Neighbour | Type |
 |-----------|------|
 | Idempotency Store | I-4 Container |
-| Fraud Engine | I-4 Container |
 | AcquirerHost | I-3 External |
 | Payment Store | I-4 Container |
 | Message Queue | I-4 Container |

@@ -41,7 +41,7 @@ The after pack is the set of Lab 7 deliverables (restyled per Guide):
 | Lab | After artifact | File |
 |-----|----------------|------|
 | Lab 1 | Scope (I-1 to I-11 complete) | Lab1-Scopes.md |
-| Lab 2 | Requirements + G1–G6 gate register | Lab2-Requirements.md |
+| Lab 2 | Requirements and Analysis (no gates — gates are Lab 7 only) | Lab2-Requirements.md |
 | Lab 5 | UML Sequence/Activity/State + G6 | Lab5-UML-LowLevel.md |
 | Lab 6 | Integration ecosystem (modeled) | Lab6-Integration-Ecosystem.md |
 | Lab 7 | Adoption record | Lab7-Adoption.md |
@@ -59,10 +59,10 @@ Every box/lifeline string in the after pack = Lab 1 Input index. No forks.
 
 | Name (Lab 1 index) | Used in Lab 8 | Used in Lab 9 | Used in Lab 5/10 Lifeline | Consistent? |
 |---------------------|:---:|:---:|:---:|:---:|
-| Merchant | ✓ (Process) | ✓ (Context, Container) | ✓ (actor) | ✓ |
+| Merchant | ✓ (Motivation, Process — business actor only) | ✓ (Context, Person) | — (not a technical actor) | ✓ |
+| Merchant Platform | ✓ (App Coop, Tech) | ✓ (Context, Container) | ✓ (actor) | ✓ |
 | API Gateway | ✓ (App Coop) | ✓ (Container) | ✓ (participant) | ✓ |
 | Payment Orchestrator | ✓ (App Coop) | ✓ (Container, Component) | ✓ (participant box) | ✓ |
-| Fraud Engine | ✓ (App Coop) | ✓ (Container) | ✓ (participant, auth only) | ✓ |
 | Idempotency Store | ✓ (App Coop) | ✓ (Container) | ✓ (participant) | ✓ |
 | Payment Store | ✓ (App Coop, Tech) | ✓ (Container) | ✓ (participant) | ✓ |
 | Query Store | ✓ (App Coop, Tech) | ✓ (Container) | — (not in write sequences) | ✓ |
@@ -72,6 +72,8 @@ Every box/lifeline string in the after pack = Lab 1 Input index. No forks.
 | AcquirerHost | ✓ (App Coop) | ✓ (Context, Container) | ✓ (participant) | ✓ |
 | NAPAS Switch | — | ✓ (Context) | — | ✓ |
 | Issuing Bank | — | ✓ (Context) | — | ✓ |
+
+**Fraud Engine is not an I-4 container** — it is an in-process module inside `Payment Orchestrator` (Lab 1 I-4 note). It does not get its own row; any diagram still drawing it as a separate box or lifeline is a fork and has been corrected.
 
 **Result:** No forked names. All strings match Lab 1 I-2/I-3/I-4. ✓
 
@@ -164,8 +166,8 @@ Failures found on the before pack (Architecture.md, payment-gateway-design.md, D
 - Domain scope (in/out) remains the same
 - Core business rules (CON.1–CON.8) are identical values
 - Payment states (7) and transitions are unchanged
-- Container decomposition is architecturally equivalent (same 9 containers)
-- External systems remain the same 3
+- Container decomposition is architecturally equivalent (same 8 I-4 containers; fraud module is in-process inside Payment Orchestrator, not a 9th container)
+- External systems remain the same 4 (Merchant Platform, AcquirerHost, NAPAS Switch, Issuing Bank)
 - Named use cases are the same 3
 
 **The architecture was not redesigned. It was re-expressed in a disciplined, reviewable, traceable format.**
