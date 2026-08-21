@@ -69,7 +69,7 @@ Every box/lifeline string in the after pack = Lab 1 Input index. No forks.
 | Message Queue | ✓ (App Coop) | ✓ (Container) | ✓ (participant) | ✓ |
 | Webhook Service | ✓ (App Coop) | ✓ (Container) | — (async, not in payment seq) | ✓ |
 | Expiry Job | ✓ (App Coop, Tech) | ✓ (Container) | — (background, separate) | ✓ |
-| VietinBank Acquirer | ✓ (App Coop) | ✓ (Context, Container) | ✓ (participant) | ✓ |
+| AcquirerHost | ✓ (App Coop) | ✓ (Context, Container) | ✓ (participant) | ✓ |
 | NAPAS Switch | — | ✓ (Context) | — | ✓ |
 | Issuing Bank | — | ✓ (Context) | — | ✓ |
 

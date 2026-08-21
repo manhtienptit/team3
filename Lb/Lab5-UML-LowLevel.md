@@ -26,7 +26,7 @@ Scope:      in-scope: US Authorize Payment / out-of-scope: capture, void, refund
 - Payment Orchestrator
 - Idempotency Store
 - Fraud Engine
-- VietinBank Acquirer
+- AcquirerHost
 - Payment Store
 - Message Queue
 
@@ -39,7 +39,7 @@ participant "API Gateway" as APIGW
 participant "Payment Orchestrator" as Orch
 participant "Idempotency Store" as Redis
 participant "Fraud Engine" as Fraud
-participant "VietinBank Acquirer" as Acquirer
+participant "AcquirerHost" as Acquirer
 database "Payment Store" as PG
 queue "Message Queue" as MQ
 
@@ -143,7 +143,7 @@ Scope:      in-scope: US Capture Payment / out-of-scope: authorize, void, refund
 - Payment Orchestrator
 - Idempotency Store
 - Payment Store
-- VietinBank Acquirer
+- AcquirerHost
 - Message Queue
 
 ### Sequence
@@ -155,7 +155,7 @@ participant "API Gateway" as APIGW
 participant "Payment Orchestrator" as Orch
 participant "Idempotency Store" as Redis
 database "Payment Store" as PG
-participant "VietinBank Acquirer" as Acquirer
+participant "AcquirerHost" as Acquirer
 queue "Message Queue" as MQ
 
 Merchant -> APIGW : POST /v1/payments/{id}/capture\n{amount, idempotency_key}
@@ -233,7 +233,7 @@ Scope:      in-scope: US Refund Payment / out-of-scope: authorize, capture, void
 - Payment Orchestrator
 - Idempotency Store
 - Payment Store
-- VietinBank Acquirer
+- AcquirerHost
 - Message Queue
 
 ### Sequence
@@ -245,7 +245,7 @@ participant "API Gateway" as APIGW
 participant "Payment Orchestrator" as Orch
 participant "Idempotency Store" as Redis
 database "Payment Store" as PG
-participant "VietinBank Acquirer" as Acquirer
+participant "AcquirerHost" as Acquirer
 queue "Message Queue" as MQ
 
 Merchant -> APIGW : POST /v1/payments/{id}/refund\n{amount, idempotency_key}
@@ -360,7 +360,7 @@ if (any rule blocks?) then (block [CON.3])
 else (pass)
 endif
 
-:Route to VietinBank Acquirer;
+:Route to AcquirerHost;
 note right: 30s timeout [CON.6]
 
 if (timeout?) then (yes)
@@ -495,7 +495,7 @@ end note
 | Payment Orchestrator | I-4 Container | ✓ Payment Orchestrator |
 | Idempotency Store | I-4 Container | ✓ Idempotency Store |
 | Fraud Engine | I-4 Container | ✓ Fraud Engine |
-| VietinBank Acquirer | I-3 External | ✓ VietinBank Acquirer |
+| AcquirerHost | I-3 External | ✓ AcquirerHost |
 | Payment Store | I-4 Container | ✓ Payment Store |
 | Message Queue | I-4 Container | ✓ Message Queue |
 

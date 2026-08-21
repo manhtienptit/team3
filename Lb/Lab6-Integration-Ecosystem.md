@@ -81,7 +81,7 @@ Gateway, event bus, and adapter are drawn as **C4 Containers** (from I-4). Produ
          sync HTTPS (30s timeout + 1 retry)
 ┌─────────────────────────────────┐
 │  Payment Orchestrator           │─────────────────▶ ┌─────────────────────────┐
-│                                 │                   │  VietinBank Acquirer     │
+│                                 │                   │  AcquirerHost           │
 └─────────────────────────────────┘                   │  (External)             │
                                                       └────────────┬────────────┘
                                                                    │ ISO 8583
@@ -103,7 +103,7 @@ Gateway, event bus, and adapter are drawn as **C4 Containers** (from I-4). Produ
 | Pattern | Mechanism | Containers Involved | Protocol | Product Label |
 |---------|-----------|---------------------|----------|---------------|
 | **Sync** | Request-Response | API Gateway → Payment Orchestrator | Internal HTTP / gRPC | Nginx or Kong |
-| **Sync** | Request-Response | Payment Orchestrator → VietinBank Acquirer | HTTPS REST, 30s timeout, 1 retry after 5s | — |
+| **Sync** | Request-Response | Payment Orchestrator → AcquirerHost | HTTPS REST, 30s timeout, 1 retry after 5s | — |
 | **Sync** | Key-Value lookup | Payment Orchestrator → Idempotency Store | Redis GET/SET/BLPOP | Redis 7.x |
 | **Sync** | In-process call | Payment Orchestrator → Fraud Engine | Function call, < 50ms | — |
 | **Sync** | SQL query | Payment Orchestrator → Payment Store | PostgreSQL wire protocol | PostgreSQL 16 |
@@ -124,13 +124,13 @@ Gateway, event bus, and adapter are drawn as **C4 Containers** (from I-4). Produ
 | API Gateway | Query Store | SQL (read), cursor pagination | Sync |
 | Payment Orchestrator | Idempotency Store | Redis GET/SET/BLPOP (48h TTL, 5s wait) | Sync |
 | Payment Orchestrator | Fraud Engine | In-process (< 50ms, auth only) | Sync |
-| Payment Orchestrator | VietinBank Acquirer | HTTPS, 30s timeout + 1 retry | Sync |
+| Payment Orchestrator | AcquirerHost | HTTPS, 30s timeout + 1 retry | Sync |
 | Payment Orchestrator | Payment Store | SQL (write) | Sync |
 | Payment Orchestrator | Message Queue | Publish event (within 1s) | Async |
 | Message Queue | Webhook Service | Consume event | Async |
 | Webhook Service | Merchant | HTTPS POST, HMAC-SHA256, 10s timeout | Async |
 | Expiry Job | Payment Store | SQL batch (hourly, Authorized → Failed) | Sync |
-| VietinBank Acquirer | NAPAS Switch | ISO 8583 | Sync |
+| AcquirerHost | NAPAS Switch | ISO 8583 | Sync |
 | NAPAS Switch | Issuing Bank | ISO 8583 | Sync |
 
 ---
@@ -158,7 +158,7 @@ Authentication and rate limiting reside on the **API Gateway** container. There 
 | Rate limiting | API Gateway | Per-merchant throttle |
 | TLS termination | API Gateway | TLS 1.2+ |
 | Webhook integrity | Webhook Service | HMAC-SHA256 signature |
-| Acquirer communication | Payment Orchestrator | HTTPS (mutual TLS if required by VietinBank) |
+| Acquirer communication | Payment Orchestrator | HTTPS (mutual TLS if required by AcquirerHost) |
 
 ---
 
