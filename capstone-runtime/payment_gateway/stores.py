@@ -1,9 +1,11 @@
 """In-memory stores (documented collapse of I-4 data containers, see name-map.md).
 
-I-7 ownership is enforced here: only Persistence Manager (Payment
-Orchestrator) may write Payment records; Webhook Service may write only
-Webhook Event rows. The I-9 forbidden path (Webhook Service writing Payment
-records) raises instead of silently succeeding.
+I-7 ownership is enforced here:
+  - Persistence Manager (Payment Orchestrator) may write Payment records;
+  - Expiry Job may write Payment records (Lab 9 rel 10, CON.4 transition only);
+  - Webhook Service may write only Webhook Event rows.
+The I-9 forbidden paths (Webhook Service writing Payment, Query Store writing
+Payment) raise instead of silently succeeding.
 """
 
 import threading
@@ -57,17 +59,31 @@ class PaymentStore:
 
     # -- Payment records: owner = Persistence Manager (Payment Orchestrator) --
     def insert_payment(self, caller, payment):
-        self._require_persistence_manager(caller)
+        self._require_payment_writer(caller)
         with self._lock:
             self._payments[payment.id] = payment
 
     def update_payment(self, caller, payment):
-        self._require_persistence_manager(caller)
+        self._require_payment_writer(caller)
+        with self._lock:
+            self._payments[payment.id] = payment
+
+    # -- Expiry Job write path (Lab 9 rel 10: CON.4 transition) --
+    def update_payment_by_expiry_job(self, caller, payment):
+        """Only Expiry Job may call this (I-7: CON.4 transition)."""
+        from .expiry_job import ExpiryJob
+        if not isinstance(caller, ExpiryJob):
+            raise PermissionError(
+                "I-7: only Expiry Job may write Payment via this path")
         with self._lock:
             self._payments[payment.id] = payment
 
     def load_payment(self, payment_id):
         return self._payments.get(payment_id)
+
+    def all_payments(self):
+        """Returns all payment objects (for Expiry Job scan)."""
+        return list(self._payments.values())
 
     # -- Webhook Event rows: owner = Webhook Service (I-7) --
     def record_webhook_event(self, caller, event):
@@ -78,13 +94,15 @@ class PaymentStore:
         return list(self._webhook_events)
 
     @staticmethod
-    def _require_persistence_manager(caller):
-        # I-9 forbidden path made impossible in code, not a README warning.
+    def _require_payment_writer(caller):
+        """I-7 / I-9: only Persistence Manager or Expiry Job may write
+        Payment records. All others are forbidden paths."""
         from .payment_orchestrator.persistence_manager import PersistenceManager
-        if not isinstance(caller, PersistenceManager):
+        from .expiry_job import ExpiryJob
+        if not isinstance(caller, (PersistenceManager, ExpiryJob)):
             raise PermissionError(
                 "I-9 forbidden path: only Persistence Manager (Payment "
-                "Orchestrator) may write Payment records")
+                "Orchestrator) or Expiry Job may write Payment records")
 
     @staticmethod
     def _require_webhook_service(caller):

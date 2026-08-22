@@ -2,6 +2,8 @@
 
 Fresh runtime per test with an injectable clock so CON.4 (7-day auth
 window) and CON.5 (180-day refund window) can be crossed without sleeping.
+
+S1: Tests inject WEBHOOK_SECRET explicitly — no env var needed to run tests.
 """
 
 import itertools
@@ -12,6 +14,7 @@ from payment_gateway.runtime import PaymentGatewayRuntime
 T0 = 1_700_000_000
 CARD = {"number": "4111111111111111", "exp_month": 12, "exp_year": 2030,
         "bin_country": "VN"}
+TEST_WEBHOOK_SECRET = "test-webhook-secret"  # test-only simulated value
 
 
 def make_card(n):
@@ -33,7 +36,9 @@ def make_card(n):
 class RuntimeTestCase(unittest.TestCase):
     def setUp(self):
         self.now = {"t": T0}
-        self.rt = PaymentGatewayRuntime(clock=lambda: self.now["t"])
+        self.rt = PaymentGatewayRuntime(
+            clock=lambda: self.now["t"],
+            webhook_secret=TEST_WEBHOOK_SECRET)
         self._keys = itertools.count(1)
         self._cards = itertools.count(1)
 
@@ -56,10 +61,18 @@ class RuntimeTestCase(unittest.TestCase):
             "POST", f"/v1/payments/{payment_id}/capture",
             {"amount": amount, "idempotency_key": key or self._key("cap")})
 
+    def void(self, payment_id, key=None):
+        return self.rt.handle(
+            "POST", f"/v1/payments/{payment_id}/void",
+            {"idempotency_key": key or self._key("void")})
+
     def refund(self, payment_id, amount, key=None):
         return self.rt.handle(
             "POST", f"/v1/payments/{payment_id}/refund",
             {"amount": amount, "idempotency_key": key or self._key("ref")})
+
+    def query(self, payment_id):
+        return self.rt.handle("GET", f"/v1/payments/{payment_id}", {})
 
     def authorized_payment(self, amount=500000):
         """Authorize and return (payment_id, status, body)."""

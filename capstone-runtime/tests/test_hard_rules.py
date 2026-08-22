@@ -129,14 +129,20 @@ class ConstraintTests(RuntimeTestCase):
         self.assertEqual(body["error"], "invalid_card")
 
     def test_no_out_of_scope_path_is_callable(self):
-        """Void Payment and Payment Query are N/A (not I-11): no route
-        exists — API Gateway answers 404 not_found."""
+        """Tokenization, 3DS, KYC, etc. are Lab 1 out-of-scope — no route
+        exists. API Gateway answers 404 not_found for any unknown path."""
         payment_id, _, _ = self.authorized_payment()
+        # Paths that remain out of scope (Lab 1 out-of-scope list)
         status, body = self.rt.handle(
-            "POST", f"/v1/payments/{payment_id}/void",
-            {"amount": 500000, "idempotency_key": "void-key"})
+            "POST", f"/v1/payments/{payment_id}/tokenize",
+            {"idempotency_key": "tok-key"})
         self.assertEqual((status, body["error"]), (404, "not_found"))
-        status, body = self.rt.handle("GET", f"/v1/payments/{payment_id}", {})
+        status, body = self.rt.handle(
+            "POST", "/v1/3dsecure/authenticate",
+            {"idempotency_key": "3ds-key"})
+        self.assertEqual((status, body["error"]), (404, "not_found"))
+        status, body = self.rt.handle("DELETE", f"/v1/payments/{payment_id}",
+                                      {})
         self.assertEqual((status, body["error"]), (404, "not_found"))
 
 

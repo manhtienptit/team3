@@ -50,6 +50,13 @@ class StateMachineEngine:
                 "amount_exceeds_authorized",
                 "capture amount exceeds authorized amount")
 
+    def validate_void(self, payment):
+        """Void requires status Authorized (I-6: Authorized -> Voided)."""
+        if payment.status.value != "authorized":
+            raise InvalidTransition(
+                "invalid_state_transition",
+                "void requires status Authorized (I-6)")
+
     def validate_refund(self, payment, amount, now):
         if payment.status.value != "captured":
             raise InvalidTransition(

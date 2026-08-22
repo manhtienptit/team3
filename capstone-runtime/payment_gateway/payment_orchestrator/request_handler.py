@@ -9,6 +9,7 @@ key (asserted by tests).
 from ..payment import Payment
 from .input_validator import ValidationError
 from .idempotency_manager import IdempotencyConflict
+from .acquirer_client import AcquirerExhausted
 from .fraud_gate import FraudBlocked
 from .state_machine_engine import InvalidTransition
 
@@ -73,8 +74,19 @@ class RequestHandler:
         self.state_machine.validate_transition(None, "Pending")
 
         self.order_log.append("acquirer_call")
-        decision, auth_code = self.acquirer.authorize(
-            payment.id, amount, card)
+        try:
+            decision, auth_code = self.acquirer.authorize(
+                payment.id, amount, card)
+        except AcquirerExhausted:
+            # CON.6: acquirer timeout exhausted -> Pending -> Failed
+            self.state_machine.validate_transition("Pending", "Failed")
+            payment.mark_failed()
+            self.persistence.persist_new(payment)
+            response = (200, {"id": payment.id, "status": "failed",
+                              "decline_reason": "acquirer_timeout"})
+            self._finish(body["idempotency_key"], response, payment,
+                         "payment.failed")
+            return response
         if decision != "approved":
             payment.mark_declined("issuer_decline")
             self.persistence.persist_new(payment)
@@ -139,6 +151,35 @@ class RequestHandler:
                           "remainder_voided": payment.remainder_voided})
         self._finish(body["idempotency_key"], response, payment,
                      "payment.captured")
+        return response
+
+    # ------------------------------------------------------------------ void
+    def void(self, payment_id, body):
+        self.order_log.append("idempotency_check")
+        outcome, cached = self.idempotency.check(body["idempotency_key"])
+        if outcome == "cached":
+            return cached["status"], cached["body"]
+
+        payment = self.persistence.load(payment_id)
+        if payment is None:
+            self.idempotency.release(body["idempotency_key"])
+            raise GatewayError(404, "payment_not_found",
+                               f"no payment with id {payment_id}")
+        try:
+            self.state_machine.validate_void(payment)
+        except InvalidTransition as invalid:
+            self.idempotency.release(body["idempotency_key"])
+            raise GatewayError(409, invalid.code, invalid.message)
+
+        # CON.3 / I-5: Fraud Gate is NEVER on the void path
+        self.order_log.append("acquirer_call")
+        self.acquirer.void(payment.id, payment.amount)
+        self.state_machine.validate_transition("Authorized", "Voided")
+        payment.mark_voided()
+        self.persistence.save(payment)
+        response = (200, {"id": payment.id, "status": "voided"})
+        self._finish(body["idempotency_key"], response, payment,
+                     "payment.voided")
         return response
 
     # ----------------------------------------------------------------- refund

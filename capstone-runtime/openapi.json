@@ -2,12 +2,12 @@
   "openapi": "3.0.3",
   "info": {
     "title": "Payment Gateway API v1",
-    "version": "1.0.0",
-    "description": "Public contract of the capstone sitting (I-11 slice only). Source of truth: Lab 1 index (I-1 contract 'REST API — OpenAPI 3.0 specification for /v1/payments endpoints'), Lab 3 §4 contract register, Lab 10 sequences. The runtime is the collapsed in-process build in this repo (see name-map.md); status codes and bodies below match it exactly — asserted by tests/test_openapi_contract.py. No real host is called: AcquirerHost and Merchant Platform are in-process mocks (I-3 mocked). Void Payment and Payment Query are N/A (not I-11 use cases) and intentionally absent.",
+    "version": "2.0.0",
+    "description": "Public contract of the capstone extended sitting. Covers the original I-11 slice (Authorize, Capture, Refund) plus the extension (Void, Payment Query, CON.6 timeout/Failed). Source of truth: Lab 1 index (I-1…I-11), Lab 3 §4 contract register, Lab 10 sequences, extension spec. The runtime is the collapsed in-process build in this repo (see name-map.md); status codes and bodies below match it exactly — asserted by tests/test_openapi_contract.py. No real host is called: AcquirerHost and Merchant Platform are in-process mocks (I-3 mocked). Rate limiting (S9, ASSUMPTION 100 req/merchant/60s) returns 429 on all paths.",
     "contact": { "name": "Team 3 — Dev R: Kim Duc Minh / SA A: Nguyen Quang Huy / Test C: Tran Quoc Dat" }
   },
   "tags": [
-    { "name": "payments", "description": "I-11 use cases: Authorize Payment, Capture Payment, Refund Payment" }
+    { "name": "payments", "description": "In-scope use cases: Authorize, Capture, Refund, Void, Payment Query" }
   ],
   "paths": {
     "/v1/payments": {
@@ -15,7 +15,7 @@
         "tags": ["payments"],
         "operationId": "authorizePayment",
         "summary": "Authorize Payment (I-11 use case 1)",
-        "description": "Happy path: idempotency check -> Fraud Gate pass -> AcquirerHost approve -> persist Authorized -> publish payment.authorized (webhook delivered async). Named alt (I-11): Fraud blocks -> Declined, no acquirer call (CON.3, G5). capture:true runs the Direct Charge variant (I-6: Pending -> Captured). A duplicate idempotency key replays the original status and body (CON.2).",
+        "description": "Happy path: idempotency check -> Fraud Gate pass -> AcquirerHost approve -> persist Authorized -> publish payment.authorized (webhook delivered async). Named alt (I-11): Fraud blocks -> Declined, no acquirer call (CON.3, G5). capture:true runs the Direct Charge variant (I-6: Pending -> Captured). A duplicate idempotency key replays the original status and body (CON.2). CON.6: acquirer timeout exhausted -> Pending -> Failed (same transaction reference, no duplicate charge).",
         "requestBody": {
           "required": true,
           "content": {
@@ -42,7 +42,7 @@
             }
           },
           "200": {
-            "description": "Declined — named alt 'Fraud blocks' (CON.3, decline_reason 'fraud_rule') or issuer decline; or Captured — Direct Charge variant (capture:true). Duplicate keys replay whichever original response was cached.",
+            "description": "Declined — named alt 'Fraud blocks' (CON.3, decline_reason 'fraud_rule') or issuer decline; or Captured — Direct Charge variant (capture:true); or Failed — CON.6 acquirer timeout exhausted. Duplicate keys replay whichever original response was cached.",
             "content": {
               "application/json": {
                 "schema": {
@@ -50,8 +50,8 @@
                   "required": ["id", "status"],
                   "properties": {
                     "id": { "type": "string" },
-                    "status": { "type": "string", "enum": ["declined", "captured"] },
-                    "decline_reason": { "type": "string", "enum": ["fraud_rule", "issuer_decline"] },
+                    "status": { "type": "string", "enum": ["declined", "captured", "failed"] },
+                    "decline_reason": { "type": "string", "enum": ["fraud_rule", "issuer_decline", "acquirer_timeout"] },
                     "fraud_rule": { "type": "string", "enum": ["FRAUD-01", "FRAUD-02", "FRAUD-03", "FRAUD-04", "FRAUD-05"] },
                     "captured_amount": { "type": "integer" }
                   }
@@ -63,7 +63,7 @@
             "description": "invalid_request (CON.2 missing/oversized idempotency key or missing field), invalid_amount (CON.1 range 10,000–500,000,000 VND), invalid_card (Luhn/expiry).",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/Error" , "x-error-codes": ["invalid_request", "invalid_amount", "invalid_card"]}
+                "schema": { "$ref": "#/components/schemas/Error", "x-error-codes": ["invalid_request", "invalid_amount", "invalid_card"] }
               }
             }
           },
@@ -72,6 +72,51 @@
             "content": {
               "application/json": {
                 "schema": { "$ref": "#/components/schemas/Error", "x-error-codes": ["idempotency_conflict"] }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limit exceeded (S9, ASSUMPTION: 100 req/merchant/60s).",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Error", "x-error-codes": ["rate_limit_exceeded"] }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/payments/{payment_id}": {
+      "get": {
+        "tags": ["payments"],
+        "operationId": "getPayment",
+        "summary": "Payment Query (Lab 9 rel 3: API Gateway -> Query Store)",
+        "description": "Returns current Payment fields from Query Store (I-4, read model). card_ref is the last 4 digits only — full PAN is never stored or returned (S3). This path NEVER calls AcquirerHost or NAPAS Switch (I-5/S4). Rate limited per S9.",
+        "parameters": [
+          { "name": "payment_id", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": {
+            "description": "Payment found — returns current state.",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/PaymentQueryResponse" }
+              }
+            }
+          },
+          "404": {
+            "description": "Unknown payment id.",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Error", "x-error-codes": ["payment_not_found"] }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limit exceeded (S9).",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Error", "x-error-codes": ["rate_limit_exceeded"] }
               }
             }
           }
@@ -136,6 +181,74 @@
                 "schema": { "$ref": "#/components/schemas/Error", "x-error-codes": ["authorization_expired", "invalid_state_transition", "idempotency_conflict"] }
               }
             }
+          },
+          "429": {
+            "description": "Rate limit exceeded (S9).",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Error", "x-error-codes": ["rate_limit_exceeded"] }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/payments/{payment_id}/void": {
+      "post": {
+        "tags": ["payments"],
+        "operationId": "voidPayment",
+        "summary": "Void Payment (extension: Lab 1 in-scope, Lab 9 relationship)",
+        "description": "Happy path: idempotency check -> validate Authorized -> AcquirerHost void -> persist Voided -> publish payment.voided (webhook async). Alt: non-Authorized -> 409 invalid_state_transition, no acquirer void call, I-6 state unchanged. Fraud Gate is NEVER on this path (CON.3 / I-5 / S5).",
+        "parameters": [
+          { "name": "payment_id", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/VoidRequest" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Voided (I-6: Authorized -> Voided).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["id", "status"],
+                  "properties": {
+                    "id": { "type": "string" },
+                    "status": { "type": "string", "enum": ["voided"] }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Unknown payment id.",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Error", "x-error-codes": ["payment_not_found"] }
+              }
+            }
+          },
+          "409": {
+            "description": "invalid_state_transition (status is not Authorized), idempotency_conflict (CON.2).",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Error", "x-error-codes": ["invalid_state_transition", "idempotency_conflict"] }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limit exceeded (S9).",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Error", "x-error-codes": ["rate_limit_exceeded"] }
+              }
+            }
           }
         }
       }
@@ -198,6 +311,14 @@
                 "schema": { "$ref": "#/components/schemas/Error", "x-error-codes": ["refund_window_expired", "invalid_state_transition", "idempotency_conflict"] }
               }
             }
+          },
+          "429": {
+            "description": "Rate limit exceeded (S9).",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Error", "x-error-codes": ["rate_limit_exceeded"] }
+              }
+            }
           }
         }
       }
@@ -207,9 +328,9 @@
         "tags": ["payments"],
         "operationId": "receiveWebhook",
         "summary": "Webhook delivery contract (Lab 3 §4 register: Webhook Service -> Merchant Platform)",
-        "description": "Implemented by Merchant Platform (I-3, mocked by MerchantPlatformFake), called by Webhook Service after the Message Queue is drained — never inside the synchronous API response (I-5). Retry per CON.7: 7 attempts on the 1m/5m/30m/2h/12h/24h schedule (delays are labels in the collapsed build), then the event is recorded failed_delivery. This operation is the merchant-facing delivery contract, not a route on Payment Gateway.",
+        "description": "Implemented by Merchant Platform (I-3, mocked by MerchantPlatformFake), called by Webhook Service after the Message Queue is drained — never inside the synchronous API response (I-5). Retry per CON.7: 7 attempts on the 1m/5m/30m/2h/12h/24h schedule (delays are labels in the collapsed build), then the event is recorded failed_delivery. S2: wrong HMAC signature is rejected. This operation is the merchant-facing delivery contract, not a route on Payment Gateway.",
         "parameters": [
-          { "name": "X-Signature", "in": "header", "required": true, "description": "HMAC-SHA256 hex digest of the raw body, keyed with the simulated webhook secret (mock list, README).", "schema": { "type": "string" } }
+          { "name": "X-Signature", "in": "header", "required": true, "description": "HMAC-SHA256 hex digest of the raw body, keyed with the WEBHOOK_SECRET (S1: from environment, never hardcoded).", "schema": { "type": "string" } }
         ],
         "requestBody": {
           "required": true,
@@ -249,7 +370,7 @@
             "type": "object",
             "required": ["number", "exp_month", "exp_year"],
             "properties": {
-              "number": { "type": "string", "description": "PAN; Luhn-checked. Only the last 4 digits are persisted (card_ref)." },
+              "number": { "type": "string", "description": "PAN; Luhn-checked. Only the last 4 digits are persisted (card_ref) — S3." },
               "exp_month": { "type": "integer", "minimum": 1, "maximum": 12 },
               "exp_year": { "type": "integer" },
               "bin_country": { "type": "string", "description": "Default 'VN'; BIN country != VN blocks (FRAUD-04, CON.8)." }
@@ -257,7 +378,7 @@
           },
           "idempotency_key": { "type": "string", "minLength": 1, "maxLength": 64, "description": "CON.2: required on all POST, 48h TTL (TTL is a label in the collapsed build)." },
           "capture": { "type": "boolean", "default": false, "description": "true = Direct Charge variant (I-6: Pending -> Captured)." },
-          "merchant_id": { "type": "string", "description": "Simulated merchant reference; defaults to 'mer_3' (ASSUMPTION row in name-map.md)." }
+          "merchant_id": { "type": "string", "description": "Simulated merchant reference; defaults to 'mer_3' (ASSUMPTION row in name-map.md). Used for rate-limiting (S9)." }
         }
       },
       "CaptureRequest": {
@@ -265,6 +386,13 @@
         "required": ["amount", "idempotency_key"],
         "properties": {
           "amount": { "type": "integer", "description": "Capture amount; must not exceed the authorized amount." },
+          "idempotency_key": { "type": "string", "minLength": 1, "maxLength": 64 }
+        }
+      },
+      "VoidRequest": {
+        "type": "object",
+        "required": ["idempotency_key"],
+        "properties": {
           "idempotency_key": { "type": "string", "minLength": 1, "maxLength": 64 }
         }
       },
@@ -276,13 +404,28 @@
           "idempotency_key": { "type": "string", "minLength": 1, "maxLength": 64 }
         }
       },
+      "PaymentQueryResponse": {
+        "type": "object",
+        "required": ["id", "status", "amount", "card_ref", "merchant_id", "captured_amount", "refunded_amount", "refund_count", "created_at"],
+        "properties": {
+          "id": { "type": "string" },
+          "status": { "type": "string", "enum": ["pending", "authorized", "captured", "voided", "refunded", "declined", "failed"], "description": "Current I-6 state (Lab 1 strings)." },
+          "amount": { "type": "integer" },
+          "card_ref": { "type": "string", "maxLength": 4, "description": "Last 4 digits only (S3: full PAN never stored or returned)." },
+          "merchant_id": { "type": "string" },
+          "captured_amount": { "type": "integer" },
+          "refunded_amount": { "type": "integer" },
+          "refund_count": { "type": "integer" },
+          "created_at": { "type": "number" }
+        }
+      },
       "WebhookEvent": {
         "type": "object",
         "required": ["type", "payment_id", "status", "amount", "occurred_at"],
         "properties": {
-          "type": { "type": "string", "enum": ["payment.authorized", "payment.declined", "payment.captured", "payment.refunded"] },
+          "type": { "type": "string", "enum": ["payment.authorized", "payment.declined", "payment.captured", "payment.refunded", "payment.voided", "payment.failed"] },
           "payment_id": { "type": "string" },
-          "status": { "type": "string", "enum": ["authorized", "declined", "captured", "refunded"] },
+          "status": { "type": "string", "enum": ["authorized", "declined", "captured", "refunded", "voided", "failed"] },
           "amount": { "type": "integer" },
           "occurred_at": { "type": "number" }
         }
