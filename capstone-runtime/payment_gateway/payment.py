@@ -49,7 +49,9 @@ class Payment:
         self.decline_reason = None
         self.remainder_voided = False
 
-    # ---- transition operations (I-6); each asserts the resulting state ----
+    # ---- transition operations (I-6). Called ONLY by the State Machine
+    # Engine (Payment Orchestrator), which validates each transition first;
+    # never by scripts or adapters directly. ----
 
     def mark_authorized(self, auth_code, expires_at):
         self.status = PaymentState.Authorized
@@ -57,12 +59,7 @@ class Payment:
         self.expires_at = expires_at
 
     def mark_captured(self, amount, now):
-        self.status = PaymentState.Captured
-        self.captured_amount = amount
-        self.captured_at = now
-
-    def add_capture(self, amount, now):
-        """Authorized -> Captured (capture of an existing authorization)."""
+        """Pending -> Captured (Direct Charge) or Authorized -> Captured."""
         self.status = PaymentState.Captured
         self.captured_amount = amount
         self.captured_at = now
@@ -71,12 +68,6 @@ class Payment:
         self.status = PaymentState.Declined
         self.decline_reason = reason
         self.fraud_rule = fraud_rule
-
-    def mark_failed(self):
-        self.status = PaymentState.Failed
-
-    def mark_voided(self):
-        self.status = PaymentState.Voided
 
     def apply_refund(self, amount):
         """Captured -> Captured (partial) or Captured -> Refunded (full)."""

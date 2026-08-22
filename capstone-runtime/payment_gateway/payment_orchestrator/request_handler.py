@@ -60,7 +60,8 @@ class RequestHandler:
             self.fraud_gate.evaluate(card, amount, merchant_id)
         except FraudBlocked as block:
             self.order_log.append("fraud_blocked")
-            payment.mark_declined("fraud_rule", fraud_rule=block.rule_id)
+            self.state_machine.to_declined(payment, "fraud_rule",
+                                           fraud_rule=block.rule_id)
             self.persistence.persist_new(payment)
             response = (200, {"id": payment.id, "status": "declined",
                               "decline_reason": "fraud_rule",
@@ -76,7 +77,7 @@ class RequestHandler:
         decision, auth_code = self.acquirer.authorize(
             payment.id, amount, card)
         if decision != "approved":
-            payment.mark_declined("issuer_decline")
+            self.state_machine.to_declined(payment, "issuer_decline")
             self.persistence.persist_new(payment)
             response = (200, {"id": payment.id, "status": "declined",
                               "decline_reason": "issuer_decline"})
@@ -86,7 +87,8 @@ class RequestHandler:
 
         if capture:  # Direct Charge: Pending -> Captured (I-6)
             self.acquirer.capture(payment.id, amount)
-            payment.mark_captured(amount, self.clock())
+            self.state_machine.to_captured_direct(payment, amount,
+                                                  self.clock())
             self.persistence.persist_new(payment)
             response = (200, {"id": payment.id, "status": "captured",
                               "captured_amount": amount})
@@ -95,7 +97,7 @@ class RequestHandler:
             return response
 
         expires_at = self.clock() + AUTH_WINDOW_SECONDS
-        payment.mark_authorized(auth_code, expires_at)
+        self.state_machine.to_authorized(payment, auth_code, expires_at)
         self.persistence.persist_new(payment)
         response = (201, {"id": payment.id, "status": "authorized",
                           "auth_code": auth_code})
@@ -127,7 +129,7 @@ class RequestHandler:
 
         self.order_log.append("acquirer_call")
         self.acquirer.capture(payment.id, amount)
-        payment.add_capture(amount, self.clock())
+        self.state_machine.commit_capture(payment, amount, self.clock())
         if amount < payment.amount:  # Partial Capture alt: void the remainder
             self.acquirer.void(payment.id, payment.amount - amount)
             payment.remainder_voided = True
@@ -163,7 +165,7 @@ class RequestHandler:
 
         self.order_log.append("acquirer_call")
         self.acquirer.refund(payment.id, amount)
-        payment.apply_refund(amount)
+        self.state_machine.commit_refund(payment, amount)
         self.persistence.save(payment)
         response = (200, {"id": payment.id, "status": payment.status.value,
                           "refunded_amount": payment.refunded_amount,

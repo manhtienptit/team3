@@ -6,9 +6,10 @@ I-6 state unchanged.
 """
 
 from .support import RuntimeTestCase, CARD
+from payment_gateway.payment_orchestrator.state_machine_engine import (
+    InvalidTransition)
 
 WEBHOOK_FORBIDDEN = ("I-9 forbidden path: only Persistence Manager")
-MERCHANT_FORBIDDEN = "I-9 forbidden path: Merchant Platform"
 
 
 class I5HardRuleTests(RuntimeTestCase):
@@ -33,6 +34,25 @@ class I5HardRuleTests(RuntimeTestCase):
         self.assertEqual(body["status"], "authorized")
         self.assertEqual(self.rt.acquirer_host.calls, [])
         self.assertEqual(self.rt.request_handler.fraud_gate.evaluations, 1)
+
+    def test_fraud05_daily_cumulative_is_sum_not_count(self):
+        """FRAUD-05 attempt-to-skip: five individually legal authorizes of
+        200,000,000 VND on ONE card sum to the 1,000,000,000 VND daily
+        limit — the sixth must be blocked. A count-based counter (bump +1
+        per transaction) would let all six through; this test catches it."""
+        same_card = CARD
+        for i in range(5):
+            status, body = self.authorize(amount=200_000_000,
+                                          key=f"f05-{i}", card=dict(same_card))
+            self.assertEqual(status, 201, body)
+        # card velocity after 5 auths is 5 < 10, so only the SUM can block
+        status, body = self.authorize(amount=200_000_000, key="f05-5",
+                                      card=dict(same_card))
+        self.assertEqual(status, 200)
+        self.assertEqual(body["status"], "declined")
+        self.assertEqual(body["fraud_rule"], "FRAUD-05")
+        payment = self.rt.payment_store.load_payment(body["id"])
+        self.assertEqual(payment.status.value, "declined")
 
     def test_i5_fraud_gate_never_on_capture_or_refund_paths(self):
         """I-5 / CON.3: fraud module NEVER evaluates on capture/refund."""
@@ -71,11 +91,21 @@ class I9ForbiddenPathTests(RuntimeTestCase):
 
     def test_i9_merchant_platform_cannot_call_acquirer_directly(self):
         """I-9 forbidden path attempted: Merchant Platform querying
-        AcquirerHost directly (no such Lab 9 relationship)."""
-        with self.assertRaises(PermissionError) as raised:
-            self.rt.merchant_platform.call_acquirer_directly(
-                self.rt.acquirer_host)
-        self.assertIn(MERCHANT_FORBIDDEN, str(raised.exception))
+        AcquirerHost directly. It holds NO handle to the acquirer (nothing
+        wires one), and the only surface it can call — the payment API —
+        has no such route: the runtime itself rejects with 404 not_found
+        and the acquirer stub records zero calls."""
+        # structural: no handle exists on the Merchant Platform fake
+        handles = [attr for attr in vars(self.rt.merchant_platform)
+                   if "acq" in attr.lower()]
+        self.assertEqual(handles, [])
+        # the attempt, through the runtime surface the merchant can reach
+        status, body = self.rt.handle(
+            "POST", "/acquirer/authorize",
+            {"amount": 500000, "transaction_ref": "forbidden"})
+        self.assertEqual(status, 404)
+        self.assertEqual(body["error"], "not_found")
+        self.assertEqual(self.rt.acquirer_host.calls, [])  # mock untouched
 
 
 class ConstraintTests(RuntimeTestCase):
@@ -118,6 +148,29 @@ class ConstraintTests(RuntimeTestCase):
         self.assertEqual((status, body["error"]), (404, "not_found"))
         status, body = self.rt.handle("GET", f"/v1/payments/{payment_id}", {})
         self.assertEqual((status, body["error"]), (404, "not_found"))
+
+
+class StateMachineEngineTests(RuntimeTestCase):
+    """D6: every Payment transition goes through the State Machine Engine,
+    and the engine rejects invalid ones against the payment's ACTUAL state
+    (Payment.mark_* ops are engine-private; nothing mutates around it)."""
+
+    def test_engine_rejects_invalid_transition_attempts(self):
+        payment_id, _, _ = self.authorized_payment()
+        payment = self.rt.payment_store.load_payment(payment_id)
+        engine = self.rt.request_handler.state_machine
+
+        with self.assertRaises(InvalidTransition):  # Authorized->Declined not I-6
+            engine.to_declined(payment, "fraud_rule")
+        with self.assertRaises(InvalidTransition):  # refund commit needs Captured
+            engine.commit_refund(payment, 100000)
+        self.assertEqual(payment.status.value, "authorized")  # unchanged
+
+        status, _ = self.capture(payment_id, amount=500000)
+        self.assertEqual(status, 200)
+        with self.assertRaises(InvalidTransition):  # capture commit needs Authorized
+            engine.commit_capture(payment, 100000, 0)
+        self.assertEqual(payment.status.value, "captured")
 
 
 class WebhookDeliveryTests(RuntimeTestCase):

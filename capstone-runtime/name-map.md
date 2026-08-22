@@ -30,13 +30,15 @@ One spelling per thing. Every code name below is the exact Lab 1 / Lab 3 / Lab 9
 | Error codes `authorization_expired`, `amount_exceeds_authorized`, `invalid_state_transition`, `max_refunds_exceeded`, `refund_window_expired`, `amount_exceeds_refundable`, `idempotency_conflict`, fraud rule ids `FRAUD-01`…`FRAUD-05` | Exact Lab 10 / Lab 3 §3 strings | Lab 3 §3, Lab 10 |
 | Events `payment.authorized`, `payment.declined`, `payment.captured`, `payment.refunded` | Lab 10 event names | Lab 10 |
 
+JSON wire values for `status` are lowercase (`"authorized"`, `"captured"`, …) exactly as the Lab 10 §1–§3 response bodies write them (`{id, status:"authorized", auth_code}`); the I-6 state identity itself is the capitalized `PaymentState` member (`Authorized`, …). Not a fork — both spellings come from the spec, one per layer.
+
 No other class, package, route, or error name exists in the runtime. `tests/support.py` (`make_card`, fixtures) is a test helper, not a new I-4 identity.
 
 ## 2. Documented collapse — one process
 
 `payment_gateway/runtime.py :: PaymentGatewayRuntime` runs the whole slice in **one process** with **in-memory stores** and an **in-process bus** (allowed collapse per capstone.md). Modules keep the exact Lab 1 / Lab 3 strings (§1). Sync = direct in-process call; async = `publish()` → `drain()` boundary, so webhook delivery is never inside the synchronous response (I-5).
 
-| I-4 container | Where it lives in the collapsed build | I-9 location it stands for |
+| I-4 container / I-9 location | Where it lives in the collapsed build | I-9 location it stands for |
 |---|---|---|
 | API Gateway | `api_gateway.APIGateway` (in-process) | Application Tier |
 | Payment Orchestrator (8 modules) | `payment_orchestrator/` package | Application Tier |
@@ -44,6 +46,10 @@ No other class, package, route, or error name exists in the runtime. `tests/supp
 | Payment Store | `stores.PaymentStore` (in-memory dict) | Database Tier |
 | Message Queue | `stores.MessageQueue` (in-process bus) | Queue Tier |
 | Webhook Service | `webhook_service.WebhookService` (driven by `drain()`) | Worker Tier |
+| Load Balancer (L7) | **N/A** — no network listener exists in the collapsed build; TLS termination / health checks stay labels at the in-process call boundary | Load Balancer |
+| Scheduler | **N/A** — Expiry Job is not built (I-1 item not in I-11; see spec-trace §3 row 8) | Scheduler |
+
+Every I-9 location of Lab 1 is accounted for above: six stand-for rows plus two N/A rows.
 
 No extra deployable unit exists: `python -m unittest` and `python -m payment_gateway.demo` each start this single process. A cluster is not output; Nginx/Kong, Kafka/SQS, PostgreSQL, Redis are labels only (I-9 product names stay labels).
 
@@ -68,7 +74,7 @@ Lab 1 names fraud rules but no thresholds; these simulated values are used in ex
 | FRAUD-02 high-value threshold | `200_000_000` VND | `fraud_gate.HIGH_VALUE_LIMIT` + OpenAPI test bodies |
 | FRAUD-01 card velocity | `10` auths/card/hour | `fraud_gate.CARD_VELOCITY_LIMIT` |
 | FRAUD-03 merchant velocity | `100` auths/merchant/hour | `fraud_gate.MERCHANT_VELOCITY_LIMIT` |
-| FRAUD-05 daily cumulative | `1_000_000_000` VND/card/day | `fraud_gate.DAILY_CARD_LIMIT` |
+| FRAUD-05 daily cumulative | `1_000_000_000` VND — **sum of authorized amounts** per card per day (not a transaction count; asserted by `test_fraud05_daily_cumulative_is_sum_not_count`) | `fraud_gate.DAILY_CARD_LIMIT` |
 | Default merchant reference | `"mer_3"` | `request_handler.authorize` |
 | Webhook signing secret (simulated) | `b"simulated-webhook-secret"` | `mocks.MerchantPlatformFake` (also used by Webhook Service) |
 | Card test data | Luhn-valid generated PANs (`4` + seed + check digit), exp 12/2030 | `tests/support.make_card` |

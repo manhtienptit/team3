@@ -37,7 +37,9 @@ class AcquirerHostStub:
 class MerchantPlatformFake:
     """In-process fake for I-3 Merchant Platform: receives webhook deliveries
     and verifies the HMAC-SHA256 signature. It holds no reference to
-    AcquirerHost (I-9: Merchant Platform must NOT query AcquirerHost directly).
+    AcquirerHost (I-9: Merchant Platform must NOT query AcquirerHost directly
+    — no such relationship exists on Lab 9, so none is wired here either;
+    tests attempt the call through the runtime surface and are rejected).
     """
 
     def __init__(self):
@@ -56,10 +58,3 @@ class MerchantPlatformFake:
         self.deliveries.append({"payload": payload, "signature": signature,
                                 "valid_signature": valid})
         return True
-
-    def call_acquirer_directly(self, acquirer):
-        """I-9 forbidden path. Raises: Merchant Platform has no route to
-        AcquirerHost in this landscape (Lab 9 relationship list has none)."""
-        raise PermissionError(
-            "I-9 forbidden path: Merchant Platform must NOT query AcquirerHost"
-            " directly (no such relationship on Lab 9)")

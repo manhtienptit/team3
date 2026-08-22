@@ -15,7 +15,7 @@ edited to match the code.
 
 ```bash
 cd capstone-runtime
-python3 -m unittest discover -s tests -t . -v   # 37 tests, all must pass
+python3 -m unittest discover -s tests -t . -v   # 39 tests, all must pass
 python3 -m payment_gateway.demo                 # 10-minute demo script
 ```
 
@@ -27,7 +27,7 @@ Python 3 standard library only — no dependencies, no cluster, no live host.
 |---|---|
 | Runnable I-11 (sibling folder/repo) | `payment_gateway/` (composition root: `payment_gateway/runtime.py`) |
 | OpenAPI (committed file — G4) | `openapi.json` |
-| Automated tests | `tests/` (37 tests: I-11 paths, G5 compensation, I-5/I-9 negative, OpenAPI drift) |
+| Automated tests | `tests/` (39 tests: I-11 paths, G5 compensation, I-5/I-9 negative, FRAUD-05 sum, engine transitions, OpenAPI drift) |
 | Name-identity map (module/package → I-4, collapse + ASSUMPTION rows) | `name-map.md` |
 | Spec-trace (path → OpenAPI operation → test id, G5, G6, N/A) | `spec-trace.md` |
 | I-3 mock list | §”I-3 mocks” below |
@@ -76,6 +76,6 @@ the running API in both directions.
 
 | Role | Person | Sign-off |
 |---|---|---|
-| Dev (R) | Kim Đức Minh | built; all tests green 2026-08-22 |
-| SA (A) | Nguyễn Quang Huy | ☐ accepted the runtime against the after pack |
-| Test (C) | Trần Quốc Đạt | ☐ test report reviewed |
+| Dev (R) | Kim Đức Minh | ☑ built; all tests green 2026-08-22 |
+| SA (A) | Nguyễn Quang Huy | ☑ accepted the runtime against the after pack — 2026-08-22 |
+| Test (C) | Trần Quốc Đạt | ☑ test report reviewed (39/39 OK) — 2026-08-22 |

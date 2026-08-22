@@ -19,6 +19,50 @@ class StateMachineEngine:
     MAX_PARTIAL_REFUNDS = 10               # CON.5
     REFUND_WINDOW_SECONDS = 180 * 86400    # CON.5
 
+    # -- transition operations: every Payment state change in this runtime
+    #    goes through one of these. Payment.mark_* ops are private to the
+    #    engine (Lab 3 §2: "Enforces valid transitions; rejects invalid
+    #    with 409"). --
+
+    def to_authorized(self, payment, auth_code, expires_at):
+        """Pending -> Authorized (issuer approved, capture:false)."""
+        self.validate_transition(payment.status.name, "Authorized")
+        payment.mark_authorized(auth_code, expires_at)
+
+    def to_captured_direct(self, payment, amount, now):
+        """Pending -> Captured (Direct Charge, I-6 #2)."""
+        self.validate_transition(payment.status.name, "Captured")
+        payment.mark_captured(amount, now)
+
+    def to_declined(self, payment, reason, fraud_rule=None):
+        """Pending -> Declined (fraud block or issuer decline)."""
+        self.validate_transition(payment.status.name, "Declined")
+        payment.mark_declined(reason, fraud_rule)
+
+    def commit_capture(self, payment, amount, now):
+        """Authorized -> Captured, after AcquirerHost CAPTURE_OK. Guards the
+        payment's actual state, not just the caller's intent."""
+        if payment.status.value != "authorized":
+            raise InvalidTransition(
+                "invalid_state_transition",
+                "capture commit requires status Authorized (I-6)")
+        self.validate_transition("Authorized", "Captured")
+        payment.mark_captured(amount, now)
+
+    def commit_refund(self, payment, amount):
+        """Captured -> Captured (partial) or Captured -> Refunded (full),
+        after AcquirerHost REFUND_OK. Both targets are valid from Captured."""
+        if payment.status.value != "captured":
+            raise InvalidTransition(
+                "invalid_state_transition",
+                "refund commit requires status Captured (I-6)")
+        self.validate_transition("Captured", "Captured")
+        self.validate_transition("Captured", "Refunded")
+        payment.apply_refund(amount)
+
+    # -- pre-checks (raise the OpenAPI error codes; run BEFORE the
+    #    acquirer call so invalid requests never reach AcquirerHost) --
+
     def validate_transition(self, from_state, to_state):
         """Lab 10 §1 step 7: validateTransition(null -> Pending) on the
         authorize path. Creation (None) may only produce Pending."""

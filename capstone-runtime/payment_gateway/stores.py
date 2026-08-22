@@ -35,9 +35,15 @@ class IdempotencyStore:
     def unlock(self, key):
         self._locks.discard(key)
 
-    # Fraud counters (I-7: Fraud Counters live in Idempotency Store)
+    # Fraud counters (I-7: Fraud Counters live in Idempotency Store).
+    # Velocity counters are transaction COUNTS; the daily cumulative is a
+    # SUM of authorized amounts (FRAUD-05 — see fraud_gate.py).
     def bump_counter(self, name, window=3600):
         self._fraud_counters[name] = self._fraud_counters.get(name, 0) + 1
+        return self._fraud_counters[name]
+
+    def add_counter(self, name, value):
+        self._fraud_counters[name] = self._fraud_counters.get(name, 0) + value
         return self._fraud_counters[name]
 
     def get_counter(self, name):

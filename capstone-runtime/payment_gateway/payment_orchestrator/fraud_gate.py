@@ -42,9 +42,11 @@ class FraudGate:
             raise FraudBlocked("FRAUD-03")
         if card.get("bin_country", REQUIRED_BIN_COUNTRY) != REQUIRED_BIN_COUNTRY:
             raise FraudBlocked("FRAUD-04")
+        # FRAUD-05: daily cumulative is the SUM of authorized amounts on the
+        # card, not the transaction count (ASSUMPTION: > 1B VND/card/day).
         if self.store.get_counter(f"daily:card:{card_ref}") + amount > DAILY_CARD_LIMIT:
             raise FraudBlocked("FRAUD-05")
         self.store.bump_counter(f"velocity:card:{card_ref}")
         self.store.bump_counter(f"velocity:merchant:{merchant_id}")
-        self.store.bump_counter(f"daily:card:{card_ref}")
+        self.store.add_counter(f"daily:card:{card_ref}", amount)
         return "pass"
