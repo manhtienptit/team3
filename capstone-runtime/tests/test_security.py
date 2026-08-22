@@ -238,7 +238,7 @@ class S11CON6NoDuplicateChargeTests(RuntimeTestCase):
         Payment ends as Failed. No second authorize with a different ref."""
         self.rt.acquirer_host.timeout_next_n = 99
         status, body = self.authorize(amount=500000)
-        self.assertEqual(body["status"], "failed")
+        self.assertEqual(body["status"], "Failed")
         payment_id = body["id"]
         auth_calls = self.acquirer_calls_of("authorize")
         # All calls use the same payment_id as transaction reference

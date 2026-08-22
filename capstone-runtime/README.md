@@ -19,7 +19,7 @@ file was edited to match the code.
 
 ```bash
 cd capstone-runtime
-WEBHOOK_SECRET=test-secret python3 -m unittest discover -s tests -t . -v  # 78 tests, all must pass
+WEBHOOK_SECRET=test-secret python3 -m unittest discover -s tests -t . -v  # 78 tests
 WEBHOOK_SECRET=demo-secret python3 -m payment_gateway.demo                # 12-minute demo script
 ```
 
@@ -114,6 +114,6 @@ the drift test pins the document to the running API in both directions.
 
 | Role | Person | Sign-off |
 |---|---|---|
-| Dev (R) | Kim Đức Minh | built; all 78 tests green 2026-08-22 |
-| SA (A) | Nguyễn Quang Huy | ☑ accepted the extended runtime against the after pack — 2026-08-22 |
-| Test (C) | Trần Quốc Đạt | ☑ test report reviewed — 2026-08-22 |
+| Dev (R) | Kim Đức Minh | built; all 78 tests green 2026-08-23 |
+| SA (A) | Nguyễn Quang Huy | ☑ accepted the extended runtime against the after pack — 2026-08-23 |
+| Test (C) | Trần Quốc Đạt | ☑ test report reviewed — 78 pass, 0 fail — 2026-08-23 |

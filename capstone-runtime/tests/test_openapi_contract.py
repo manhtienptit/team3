@@ -99,7 +99,7 @@ class OpenApiContractTests(RuntimeTestCase):
         self.rt.acquirer_host.timeout_next_n = 99
         status, body = self.authorize(amount=500000)
         self.assertEqual(status, 200)
-        self.assertEqual(body["status"], "failed")
+        self.assertEqual(body["status"], "Failed")
         record(op, status, body)
         self.rt.acquirer_host.timeout_next_n = 0
 

@@ -58,8 +58,8 @@ class AcquirerClient:
         raise AcquirerExhausted(transaction_ref)  # pragma: no cover
 
     def void(self, transaction_ref, amount):
-        """Void of the uncaptured remainder on the Partial Capture alt
-        (Lab 10 §2). Not the standalone Void Payment use case (N/A)."""
+        """AcquirerHost void — used by Void Payment (Authorized -> Voided)
+        and by the Partial Capture alt (Lab 10 §2, void remainder)."""
         for attempt in range(MAX_ATTEMPTS):
             try:
                 result = self.acquirer_host.void(transaction_ref, amount)

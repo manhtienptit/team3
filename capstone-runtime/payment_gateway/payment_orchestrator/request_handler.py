@@ -82,7 +82,7 @@ class RequestHandler:
             self.state_machine.validate_transition("Pending", "Failed")
             payment.mark_failed()
             self.persistence.persist_new(payment)
-            response = (200, {"id": payment.id, "status": "failed",
+            response = (200, {"id": payment.id, "status": "Failed",
                               "decline_reason": "acquirer_timeout"})
             self._finish(body["idempotency_key"], response, payment,
                          "payment.failed")
@@ -177,7 +177,7 @@ class RequestHandler:
         self.state_machine.validate_transition("Authorized", "Voided")
         payment.mark_voided()
         self.persistence.save(payment)
-        response = (200, {"id": payment.id, "status": "voided"})
+        response = (200, {"id": payment.id, "status": "Voided"})
         self._finish(body["idempotency_key"], response, payment,
                      "payment.voided")
         return response

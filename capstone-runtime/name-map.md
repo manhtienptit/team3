@@ -45,7 +45,7 @@ No other class, package, route, or error name exists in the runtime. `tests/supp
 | API Gateway | `api_gateway.APIGateway` + `api_gateway.RateLimiter` (in-process) | Application Tier |
 | Payment Orchestrator (8 modules) | `payment_orchestrator/` package | Application Tier |
 | Query Store | `query_store.QueryStore` (in-memory read model of Payment Store) | Database Tier (read-replica) |
-| Expiry Job | `expiry_job.ExpiryJob` (in-process tick, not a real cron) | Worker Tier |
+| Expiry Job | `expiry_job.ExpiryJob` (in-process tick, not a real cron) | Scheduler |
 | Idempotency Store | `stores.IdempotencyStore` (in-memory dict) | Cache Tier |
 | Payment Store | `stores.PaymentStore` (in-memory dict) | Database Tier |
 | Message Queue | `stores.MessageQueue` (in-process bus) | Queue Tier |

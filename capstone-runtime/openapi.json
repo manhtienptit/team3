@@ -3,16 +3,23 @@
   "info": {
     "title": "Payment Gateway API v1",
     "version": "2.0.0",
-    "description": "Public contract of the capstone extended sitting. Covers the original I-11 slice (Authorize, Capture, Refund) plus the extension (Void, Payment Query, CON.6 timeout/Failed). Source of truth: Lab 1 index (I-1…I-11), Lab 3 §4 contract register, Lab 10 sequences, extension spec. The runtime is the collapsed in-process build in this repo (see name-map.md); status codes and bodies below match it exactly — asserted by tests/test_openapi_contract.py. No real host is called: AcquirerHost and Merchant Platform are in-process mocks (I-3 mocked). Rate limiting (S9, ASSUMPTION 100 req/merchant/60s) returns 429 on all paths.",
-    "contact": { "name": "Team 3 — Dev R: Kim Duc Minh / SA A: Nguyen Quang Huy / Test C: Tran Quoc Dat" }
+    "description": "Public contract of the capstone extended sitting. Covers the original I-11 slice (Authorize, Capture, Refund) plus the extension (Void, Payment Query, CON.6 timeout/Failed). Source of truth: Lab 1 index (I-1\u2026I-11), Lab 3 \u00a74 contract register, Lab 10 sequences, extension spec. The runtime is the collapsed in-process build in this repo (see name-map.md); status codes and bodies below match it exactly \u2014 asserted by tests/test_openapi_contract.py. No real host is called: AcquirerHost and Merchant Platform are in-process mocks (I-3 mocked). Rate limiting (S9, ASSUMPTION 100 req/merchant/60s) returns 429 on all paths.",
+    "contact": {
+      "name": "Team 3 \u2014 Dev R: Kim Duc Minh / SA A: Nguyen Quang Huy / Test C: Tran Quoc Dat"
+    }
   },
   "tags": [
-    { "name": "payments", "description": "In-scope use cases: Authorize, Capture, Refund, Void, Payment Query" }
+    {
+      "name": "payments",
+      "description": "In-scope use cases: Authorize, Capture, Refund, Void, Payment Query"
+    }
   ],
   "paths": {
     "/v1/payments": {
       "post": {
-        "tags": ["payments"],
+        "tags": [
+          "payments"
+        ],
         "operationId": "authorizePayment",
         "summary": "Authorize Payment (I-11 use case 1)",
         "description": "Happy path: idempotency check -> Fraud Gate pass -> AcquirerHost approve -> persist Authorized -> publish payment.authorized (webhook delivered async). Named alt (I-11): Fraud blocks -> Declined, no acquirer call (CON.3, G5). capture:true runs the Direct Charge variant (I-6: Pending -> Captured). A duplicate idempotency key replays the original status and body (CON.2). CON.6: acquirer timeout exhausted -> Pending -> Failed (same transaction reference, no duplicate charge).",
@@ -20,7 +27,9 @@
           "required": true,
           "content": {
             "application/json": {
-              "schema": { "$ref": "#/components/schemas/AuthorizeRequest" }
+              "schema": {
+                "$ref": "#/components/schemas/AuthorizeRequest"
+              }
             }
           }
         },
@@ -31,47 +40,102 @@
               "application/json": {
                 "schema": {
                   "type": "object",
-                  "required": ["id", "status", "auth_code"],
+                  "required": [
+                    "id",
+                    "status",
+                    "auth_code"
+                  ],
                   "properties": {
-                    "id": { "type": "string" },
-                    "status": { "type": "string", "enum": ["Authorized"] },
-                    "auth_code": { "type": "string" }
+                    "id": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "Authorized"
+                      ]
+                    },
+                    "auth_code": {
+                      "type": "string"
+                    }
                   }
                 }
               }
             }
           },
           "200": {
-            "description": "Declined — named alt 'Fraud blocks' (CON.3, decline_reason 'fraud_rule') or issuer decline; or Captured — Direct Charge variant (capture:true); or Failed — CON.6 acquirer timeout exhausted. Duplicate keys replay whichever original response was cached.",
+            "description": "Declined \u2014 named alt 'Fraud blocks' (CON.3, decline_reason 'fraud_rule') or issuer decline; or Captured \u2014 Direct Charge variant (capture:true); or Failed \u2014 CON.6 acquirer timeout exhausted. Duplicate keys replay whichever original response was cached.",
             "content": {
               "application/json": {
                 "schema": {
                   "type": "object",
-                  "required": ["id", "status"],
+                  "required": [
+                    "id",
+                    "status"
+                  ],
                   "properties": {
-                    "id": { "type": "string" },
-                    "status": { "type": "string", "enum": ["declined", "captured", "failed"] },
-                    "decline_reason": { "type": "string", "enum": ["fraud_rule", "issuer_decline", "acquirer_timeout"] },
-                    "fraud_rule": { "type": "string", "enum": ["FRAUD-01", "FRAUD-02", "FRAUD-03", "FRAUD-04", "FRAUD-05"] },
-                    "captured_amount": { "type": "integer" }
+                    "id": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "Declined",
+                        "Captured",
+                        "Failed"
+                      ]
+                    },
+                    "decline_reason": {
+                      "type": "string",
+                      "enum": [
+                        "fraud_rule",
+                        "issuer_decline",
+                        "acquirer_timeout"
+                      ]
+                    },
+                    "fraud_rule": {
+                      "type": "string",
+                      "enum": [
+                        "FRAUD-01",
+                        "FRAUD-02",
+                        "FRAUD-03",
+                        "FRAUD-04",
+                        "FRAUD-05"
+                      ]
+                    },
+                    "captured_amount": {
+                      "type": "integer"
+                    }
                   }
                 }
               }
             }
           },
           "400": {
-            "description": "invalid_request (CON.2 missing/oversized idempotency key or missing field), invalid_amount (CON.1 range 10,000–500,000,000 VND), invalid_card (Luhn/expiry).",
+            "description": "invalid_request (CON.2 missing/oversized idempotency key or missing field), invalid_amount (CON.1 range 10,000\u2013500,000,000 VND), invalid_card (Luhn/expiry).",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/Error", "x-error-codes": ["invalid_request", "invalid_amount", "invalid_card"] }
+                "schema": {
+                  "$ref": "#/components/schemas/Error",
+                  "x-error-codes": [
+                    "invalid_request",
+                    "invalid_amount",
+                    "invalid_card"
+                  ]
+                }
               }
             }
           },
           "409": {
-            "description": "Concurrent request with the same idempotency key still in flight (CON.2; the 5s wait is collapsed — see name-map.md).",
+            "description": "Concurrent request with the same idempotency key still in flight (CON.2; the 5s wait is collapsed \u2014 see name-map.md).",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/Error", "x-error-codes": ["idempotency_conflict"] }
+                "schema": {
+                  "$ref": "#/components/schemas/Error",
+                  "x-error-codes": [
+                    "idempotency_conflict"
+                  ]
+                }
               }
             }
           },
@@ -79,7 +143,12 @@
             "description": "Rate limit exceeded (S9, ASSUMPTION: 100 req/merchant/60s).",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/Error", "x-error-codes": ["rate_limit_exceeded"] }
+                "schema": {
+                  "$ref": "#/components/schemas/Error",
+                  "x-error-codes": [
+                    "rate_limit_exceeded"
+                  ]
+                }
               }
             }
           }
@@ -88,19 +157,30 @@
     },
     "/v1/payments/{payment_id}": {
       "get": {
-        "tags": ["payments"],
+        "tags": [
+          "payments"
+        ],
         "operationId": "getPayment",
         "summary": "Payment Query (Lab 9 rel 3: API Gateway -> Query Store)",
-        "description": "Returns current Payment fields from Query Store (I-4, read model). card_ref is the last 4 digits only — full PAN is never stored or returned (S3). This path NEVER calls AcquirerHost or NAPAS Switch (I-5/S4). Rate limited per S9.",
+        "description": "Returns current Payment fields from Query Store (I-4, read model). card_ref is the last 4 digits only \u2014 full PAN is never stored or returned (S3). This path NEVER calls AcquirerHost or NAPAS Switch (I-5/S4). Rate limited per S9.",
         "parameters": [
-          { "name": "payment_id", "in": "path", "required": true, "schema": { "type": "string" } }
+          {
+            "name": "payment_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
         ],
         "responses": {
           "200": {
-            "description": "Payment found — returns current state.",
+            "description": "Payment found \u2014 returns current state.",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/PaymentQueryResponse" }
+                "schema": {
+                  "$ref": "#/components/schemas/PaymentQueryResponse"
+                }
               }
             }
           },
@@ -108,7 +188,12 @@
             "description": "Unknown payment id.",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/Error", "x-error-codes": ["payment_not_found"] }
+                "schema": {
+                  "$ref": "#/components/schemas/Error",
+                  "x-error-codes": [
+                    "payment_not_found"
+                  ]
+                }
               }
             }
           },
@@ -116,7 +201,12 @@
             "description": "Rate limit exceeded (S9).",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/Error", "x-error-codes": ["rate_limit_exceeded"] }
+                "schema": {
+                  "$ref": "#/components/schemas/Error",
+                  "x-error-codes": [
+                    "rate_limit_exceeded"
+                  ]
+                }
               }
             }
           }
@@ -125,18 +215,29 @@
     },
     "/v1/payments/{payment_id}/capture": {
       "post": {
-        "tags": ["payments"],
+        "tags": [
+          "payments"
+        ],
         "operationId": "capturePayment",
         "summary": "Capture Payment (I-11 use case 2)",
-        "description": "Happy path: idempotency check -> validate (Authorized + not expired, amount <= authorized) -> AcquirerHost capture -> persist Captured -> publish payment.captured. Named alt (I-11): Auth expired -> 409 authorization_expired (CON.4, G5). amount < authorized runs the Partial Capture variant (remainder voided, Lab 10 §2). Fraud Gate is never on this path (CON.3).",
+        "description": "Happy path: idempotency check -> validate (Authorized + not expired, amount <= authorized) -> AcquirerHost capture -> persist Captured -> publish payment.captured. Named alt (I-11): Auth expired -> 409 authorization_expired (CON.4, G5). amount < authorized runs the Partial Capture variant (remainder voided, Lab 10 \u00a72). Fraud Gate is never on this path (CON.3).",
         "parameters": [
-          { "name": "payment_id", "in": "path", "required": true, "schema": { "type": "string" } }
+          {
+            "name": "payment_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
         ],
         "requestBody": {
           "required": true,
           "content": {
             "application/json": {
-              "schema": { "$ref": "#/components/schemas/CaptureRequest" }
+              "schema": {
+                "$ref": "#/components/schemas/CaptureRequest"
+              }
             }
           }
         },
@@ -147,22 +248,44 @@
               "application/json": {
                 "schema": {
                   "type": "object",
-                  "required": ["id", "status", "captured_amount", "remainder_voided"],
+                  "required": [
+                    "id",
+                    "status",
+                    "captured_amount",
+                    "remainder_voided"
+                  ],
                   "properties": {
-                    "id": { "type": "string" },
-                    "status": { "type": "string", "enum": ["Captured"] },
-                    "captured_amount": { "type": "integer" },
-                    "remainder_voided": { "type": "boolean" }
+                    "id": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "Captured"
+                      ]
+                    },
+                    "captured_amount": {
+                      "type": "integer"
+                    },
+                    "remainder_voided": {
+                      "type": "boolean"
+                    }
                   }
                 }
               }
             }
           },
           "400": {
-            "description": "invalid_request (missing field / CON.2 key) or amount_exceeds_authorized (Lab 10 §2 alt).",
+            "description": "invalid_request (missing field / CON.2 key) or amount_exceeds_authorized (Lab 10 \u00a72 alt).",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/Error", "x-error-codes": ["invalid_request", "amount_exceeds_authorized"] }
+                "schema": {
+                  "$ref": "#/components/schemas/Error",
+                  "x-error-codes": [
+                    "invalid_request",
+                    "amount_exceeds_authorized"
+                  ]
+                }
               }
             }
           },
@@ -170,15 +293,27 @@
             "description": "Unknown payment id.",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/Error", "x-error-codes": ["payment_not_found"] }
+                "schema": {
+                  "$ref": "#/components/schemas/Error",
+                  "x-error-codes": [
+                    "payment_not_found"
+                  ]
+                }
               }
             }
           },
           "409": {
-            "description": "authorization_expired (named alt, CON.4 — no acquirer call, state unchanged), invalid_state_transition (status is not Authorized), idempotency_conflict (CON.2).",
+            "description": "authorization_expired (named alt, CON.4 \u2014 no acquirer call, state unchanged), invalid_state_transition (status is not Authorized), idempotency_conflict (CON.2).",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/Error", "x-error-codes": ["authorization_expired", "invalid_state_transition", "idempotency_conflict"] }
+                "schema": {
+                  "$ref": "#/components/schemas/Error",
+                  "x-error-codes": [
+                    "authorization_expired",
+                    "invalid_state_transition",
+                    "idempotency_conflict"
+                  ]
+                }
               }
             }
           },
@@ -186,7 +321,12 @@
             "description": "Rate limit exceeded (S9).",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/Error", "x-error-codes": ["rate_limit_exceeded"] }
+                "schema": {
+                  "$ref": "#/components/schemas/Error",
+                  "x-error-codes": [
+                    "rate_limit_exceeded"
+                  ]
+                }
               }
             }
           }
@@ -195,18 +335,29 @@
     },
     "/v1/payments/{payment_id}/void": {
       "post": {
-        "tags": ["payments"],
+        "tags": [
+          "payments"
+        ],
         "operationId": "voidPayment",
         "summary": "Void Payment (extension: Lab 1 in-scope, Lab 9 relationship)",
         "description": "Happy path: idempotency check -> validate Authorized -> AcquirerHost void -> persist Voided -> publish payment.voided (webhook async). Alt: non-Authorized -> 409 invalid_state_transition, no acquirer void call, I-6 state unchanged. Fraud Gate is NEVER on this path (CON.3 / I-5 / S5).",
         "parameters": [
-          { "name": "payment_id", "in": "path", "required": true, "schema": { "type": "string" } }
+          {
+            "name": "payment_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
         ],
         "requestBody": {
           "required": true,
           "content": {
             "application/json": {
-              "schema": { "$ref": "#/components/schemas/VoidRequest" }
+              "schema": {
+                "$ref": "#/components/schemas/VoidRequest"
+              }
             }
           }
         },
@@ -217,10 +368,20 @@
               "application/json": {
                 "schema": {
                   "type": "object",
-                  "required": ["id", "status"],
+                  "required": [
+                    "id",
+                    "status"
+                  ],
                   "properties": {
-                    "id": { "type": "string" },
-                    "status": { "type": "string", "enum": ["voided"] }
+                    "id": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "Voided"
+                      ]
+                    }
                   }
                 }
               }
@@ -230,7 +391,12 @@
             "description": "Unknown payment id.",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/Error", "x-error-codes": ["payment_not_found"] }
+                "schema": {
+                  "$ref": "#/components/schemas/Error",
+                  "x-error-codes": [
+                    "payment_not_found"
+                  ]
+                }
               }
             }
           },
@@ -238,7 +404,13 @@
             "description": "invalid_state_transition (status is not Authorized), idempotency_conflict (CON.2).",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/Error", "x-error-codes": ["invalid_state_transition", "idempotency_conflict"] }
+                "schema": {
+                  "$ref": "#/components/schemas/Error",
+                  "x-error-codes": [
+                    "invalid_state_transition",
+                    "idempotency_conflict"
+                  ]
+                }
               }
             }
           },
@@ -246,7 +418,12 @@
             "description": "Rate limit exceeded (S9).",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/Error", "x-error-codes": ["rate_limit_exceeded"] }
+                "schema": {
+                  "$ref": "#/components/schemas/Error",
+                  "x-error-codes": [
+                    "rate_limit_exceeded"
+                  ]
+                }
               }
             }
           }
@@ -255,18 +432,29 @@
     },
     "/v1/payments/{payment_id}/refund": {
       "post": {
-        "tags": ["payments"],
+        "tags": [
+          "payments"
+        ],
         "operationId": "refundPayment",
         "summary": "Refund Payment (I-11 use case 3)",
         "description": "Happy path: idempotency check -> validate (Captured + amount <= refundable + refundCount < 10 + within 180d) -> AcquirerHost refund -> persist (partial stays Captured, full becomes Refunded) -> publish payment.refunded. Named alt (I-11): Max refunds exceeded -> 400 max_refunds_exceeded (CON.5, G5). Fraud Gate is never on this path (CON.3).",
         "parameters": [
-          { "name": "payment_id", "in": "path", "required": true, "schema": { "type": "string" } }
+          {
+            "name": "payment_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
         ],
         "requestBody": {
           "required": true,
           "content": {
             "application/json": {
-              "schema": { "$ref": "#/components/schemas/RefundRequest" }
+              "schema": {
+                "$ref": "#/components/schemas/RefundRequest"
+              }
             }
           }
         },
@@ -277,22 +465,46 @@
               "application/json": {
                 "schema": {
                   "type": "object",
-                  "required": ["id", "status", "refunded_amount", "refund_count"],
+                  "required": [
+                    "id",
+                    "status",
+                    "refunded_amount",
+                    "refund_count"
+                  ],
                   "properties": {
-                    "id": { "type": "string" },
-                    "status": { "type": "string", "enum": ["Captured", "Refunded"] },
-                    "refunded_amount": { "type": "integer" },
-                    "refund_count": { "type": "integer" }
+                    "id": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "Captured",
+                        "Refunded"
+                      ]
+                    },
+                    "refunded_amount": {
+                      "type": "integer"
+                    },
+                    "refund_count": {
+                      "type": "integer"
+                    }
                   }
                 }
               }
             }
           },
           "400": {
-            "description": "invalid_request (missing field / CON.2 key), max_refunds_exceeded (named alt, CON.5 — no acquirer call, counts unchanged), amount_exceeds_refundable (Lab 10 §3 alt).",
+            "description": "invalid_request (missing field / CON.2 key), max_refunds_exceeded (named alt, CON.5 \u2014 no acquirer call, counts unchanged), amount_exceeds_refundable (Lab 10 \u00a73 alt).",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/Error", "x-error-codes": ["invalid_request", "max_refunds_exceeded", "amount_exceeds_refundable"] }
+                "schema": {
+                  "$ref": "#/components/schemas/Error",
+                  "x-error-codes": [
+                    "invalid_request",
+                    "max_refunds_exceeded",
+                    "amount_exceeds_refundable"
+                  ]
+                }
               }
             }
           },
@@ -300,7 +512,12 @@
             "description": "Unknown payment id.",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/Error", "x-error-codes": ["payment_not_found"] }
+                "schema": {
+                  "$ref": "#/components/schemas/Error",
+                  "x-error-codes": [
+                    "payment_not_found"
+                  ]
+                }
               }
             }
           },
@@ -308,7 +525,14 @@
             "description": "refund_window_expired (CON.5 180-day window), invalid_state_transition (status is not Captured), idempotency_conflict (CON.2).",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/Error", "x-error-codes": ["refund_window_expired", "invalid_state_transition", "idempotency_conflict"] }
+                "schema": {
+                  "$ref": "#/components/schemas/Error",
+                  "x-error-codes": [
+                    "refund_window_expired",
+                    "invalid_state_transition",
+                    "idempotency_conflict"
+                  ]
+                }
               }
             }
           },
@@ -316,7 +540,12 @@
             "description": "Rate limit exceeded (S9).",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/Error", "x-error-codes": ["rate_limit_exceeded"] }
+                "schema": {
+                  "$ref": "#/components/schemas/Error",
+                  "x-error-codes": [
+                    "rate_limit_exceeded"
+                  ]
+                }
               }
             }
           }
@@ -325,31 +554,47 @@
     },
     "/webhooks": {
       "post": {
-        "tags": ["payments"],
+        "tags": [
+          "payments"
+        ],
         "operationId": "receiveWebhook",
-        "summary": "Webhook delivery contract (Lab 3 §4 register: Webhook Service -> Merchant Platform)",
-        "description": "Implemented by Merchant Platform (I-3, mocked by MerchantPlatformFake), called by Webhook Service after the Message Queue is drained — never inside the synchronous API response (I-5). Retry per CON.7: 7 attempts on the 1m/5m/30m/2h/12h/24h schedule (delays are labels in the collapsed build), then the event is recorded failed_delivery. S2: wrong HMAC signature is rejected. This operation is the merchant-facing delivery contract, not a route on Payment Gateway.",
+        "summary": "Webhook delivery contract (Lab 3 \u00a74 register: Webhook Service -> Merchant Platform)",
+        "description": "Implemented by Merchant Platform (I-3, mocked by MerchantPlatformFake), called by Webhook Service after the Message Queue is drained \u2014 never inside the synchronous API response (I-5). Retry per CON.7: 7 attempts on the 1m/5m/30m/2h/12h/24h schedule (delays are labels in the collapsed build), then the event is recorded failed_delivery. S2: wrong HMAC signature is rejected. This operation is the merchant-facing delivery contract, not a route on Payment Gateway.",
         "parameters": [
-          { "name": "X-Signature", "in": "header", "required": true, "description": "HMAC-SHA256 hex digest of the raw body, keyed with the WEBHOOK_SECRET (S1: from environment, never hardcoded).", "schema": { "type": "string" } }
+          {
+            "name": "X-Signature",
+            "in": "header",
+            "required": true,
+            "description": "HMAC-SHA256 hex digest of the raw body, keyed with the WEBHOOK_SECRET (S1: from environment, never hardcoded).",
+            "schema": {
+              "type": "string"
+            }
+          }
         ],
         "requestBody": {
           "required": true,
           "content": {
             "application/json": {
-              "schema": { "$ref": "#/components/schemas/WebhookEvent" }
+              "schema": {
+                "$ref": "#/components/schemas/WebhookEvent"
+              }
             }
           }
         },
         "responses": {
           "200": {
-            "description": "Delivery accepted. Exhausted retries are recorded as failed_delivery Webhook Event rows by Webhook Service (CON.7) — no extra status is invented here.",
+            "description": "Delivery accepted. Exhausted retries are recorded as failed_delivery Webhook Event rows by Webhook Service (CON.7) \u2014 no extra status is invented here.",
             "content": {
               "application/json": {
                 "schema": {
                   "type": "object",
-                  "required": ["received"],
+                  "required": [
+                    "received"
+                  ],
                   "properties": {
-                    "received": { "type": "boolean" }
+                    "received": {
+                      "type": "boolean"
+                    }
                   }
                 }
               }
@@ -363,79 +608,222 @@
     "schemas": {
       "AuthorizeRequest": {
         "type": "object",
-        "required": ["amount", "card", "idempotency_key"],
+        "required": [
+          "amount",
+          "card",
+          "idempotency_key"
+        ],
         "properties": {
-          "amount": { "type": "integer", "minimum": 10000, "maximum": 500000000, "description": "VND, CON.1." },
+          "amount": {
+            "type": "integer",
+            "minimum": 10000,
+            "maximum": 500000000,
+            "description": "VND, CON.1."
+          },
           "card": {
             "type": "object",
-            "required": ["number", "exp_month", "exp_year"],
+            "required": [
+              "number",
+              "exp_month",
+              "exp_year"
+            ],
             "properties": {
-              "number": { "type": "string", "description": "PAN; Luhn-checked. Only the last 4 digits are persisted (card_ref) — S3." },
-              "exp_month": { "type": "integer", "minimum": 1, "maximum": 12 },
-              "exp_year": { "type": "integer" },
-              "bin_country": { "type": "string", "description": "Default 'VN'; BIN country != VN blocks (FRAUD-04, CON.8)." }
+              "number": {
+                "type": "string",
+                "description": "PAN; Luhn-checked. Only the last 4 digits are persisted (card_ref) \u2014 S3."
+              },
+              "exp_month": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 12
+              },
+              "exp_year": {
+                "type": "integer"
+              },
+              "bin_country": {
+                "type": "string",
+                "description": "Default 'VN'; BIN country != VN blocks (FRAUD-04, CON.8)."
+              }
             }
           },
-          "idempotency_key": { "type": "string", "minLength": 1, "maxLength": 64, "description": "CON.2: required on all POST, 48h TTL (TTL is a label in the collapsed build)." },
-          "capture": { "type": "boolean", "default": false, "description": "true = Direct Charge variant (I-6: Pending -> Captured)." },
-          "merchant_id": { "type": "string", "description": "Simulated merchant reference; defaults to 'mer_3' (ASSUMPTION row in name-map.md). Used for rate-limiting (S9)." }
+          "idempotency_key": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 64,
+            "description": "CON.2: required on all POST, 48h TTL (TTL is a label in the collapsed build)."
+          },
+          "capture": {
+            "type": "boolean",
+            "default": false,
+            "description": "true = Direct Charge variant (I-6: Pending -> Captured)."
+          },
+          "merchant_id": {
+            "type": "string",
+            "description": "Simulated merchant reference; defaults to 'mer_3' (ASSUMPTION row in name-map.md). Used for rate-limiting (S9)."
+          }
         }
       },
       "CaptureRequest": {
         "type": "object",
-        "required": ["amount", "idempotency_key"],
+        "required": [
+          "amount",
+          "idempotency_key"
+        ],
         "properties": {
-          "amount": { "type": "integer", "description": "Capture amount; must not exceed the authorized amount." },
-          "idempotency_key": { "type": "string", "minLength": 1, "maxLength": 64 }
+          "amount": {
+            "type": "integer",
+            "description": "Capture amount; must not exceed the authorized amount."
+          },
+          "idempotency_key": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 64
+          }
         }
       },
       "VoidRequest": {
         "type": "object",
-        "required": ["idempotency_key"],
+        "required": [
+          "idempotency_key"
+        ],
         "properties": {
-          "idempotency_key": { "type": "string", "minLength": 1, "maxLength": 64 }
+          "idempotency_key": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 64
+          }
         }
       },
       "RefundRequest": {
         "type": "object",
-        "required": ["amount", "idempotency_key"],
+        "required": [
+          "amount",
+          "idempotency_key"
+        ],
         "properties": {
-          "amount": { "type": "integer", "description": "Refund amount; must not exceed capturedAmount - refundedAmount." },
-          "idempotency_key": { "type": "string", "minLength": 1, "maxLength": 64 }
+          "amount": {
+            "type": "integer",
+            "description": "Refund amount; must not exceed capturedAmount - refundedAmount."
+          },
+          "idempotency_key": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 64
+          }
         }
       },
       "PaymentQueryResponse": {
         "type": "object",
-        "required": ["id", "status", "amount", "card_ref", "merchant_id", "captured_amount", "refunded_amount", "refund_count", "created_at"],
+        "required": [
+          "id",
+          "status",
+          "amount",
+          "card_ref",
+          "merchant_id",
+          "captured_amount",
+          "refunded_amount",
+          "refund_count",
+          "created_at"
+        ],
         "properties": {
-          "id": { "type": "string" },
-          "status": { "type": "string", "enum": ["pending", "authorized", "captured", "voided", "refunded", "declined", "failed"], "description": "Current I-6 state (Lab 1 strings)." },
-          "amount": { "type": "integer" },
-          "card_ref": { "type": "string", "maxLength": 4, "description": "Last 4 digits only (S3: full PAN never stored or returned)." },
-          "merchant_id": { "type": "string" },
-          "captured_amount": { "type": "integer" },
-          "refunded_amount": { "type": "integer" },
-          "refund_count": { "type": "integer" },
-          "created_at": { "type": "number" }
+          "id": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "Pending",
+              "Authorized",
+              "Captured",
+              "Voided",
+              "Refunded",
+              "Declined",
+              "Failed"
+            ],
+            "description": "Current I-6 state (Lab 1 strings)."
+          },
+          "amount": {
+            "type": "integer"
+          },
+          "card_ref": {
+            "type": "string",
+            "maxLength": 4,
+            "description": "Last 4 digits only (S3: full PAN never stored or returned)."
+          },
+          "merchant_id": {
+            "type": "string"
+          },
+          "captured_amount": {
+            "type": "integer"
+          },
+          "refunded_amount": {
+            "type": "integer"
+          },
+          "refund_count": {
+            "type": "integer"
+          },
+          "created_at": {
+            "type": "number"
+          }
         }
       },
       "WebhookEvent": {
         "type": "object",
-        "required": ["type", "payment_id", "status", "amount", "occurred_at"],
+        "required": [
+          "type",
+          "payment_id",
+          "status",
+          "amount",
+          "occurred_at"
+        ],
         "properties": {
-          "type": { "type": "string", "enum": ["payment.authorized", "payment.declined", "payment.captured", "payment.refunded", "payment.voided", "payment.failed"] },
-          "payment_id": { "type": "string" },
-          "status": { "type": "string", "enum": ["authorized", "declined", "captured", "refunded", "voided", "failed"] },
-          "amount": { "type": "integer" },
-          "occurred_at": { "type": "number" }
+          "type": {
+            "type": "string",
+            "enum": [
+              "payment.authorized",
+              "payment.declined",
+              "payment.captured",
+              "payment.refunded",
+              "payment.voided",
+              "payment.failed"
+            ]
+          },
+          "payment_id": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "Authorized",
+              "Declined",
+              "Captured",
+              "Refunded",
+              "Voided",
+              "Failed"
+            ]
+          },
+          "amount": {
+            "type": "integer"
+          },
+          "occurred_at": {
+            "type": "number"
+          }
         }
       },
       "Error": {
         "type": "object",
-        "required": ["error", "message"],
+        "required": [
+          "error",
+          "message"
+        ],
         "properties": {
-          "error": { "type": "string", "description": "Machine-readable code; the exact set per operation+status is listed in the response's x-error-codes extension." },
-          "message": { "type": "string" }
+          "error": {
+            "type": "string",
+            "description": "Machine-readable code; the exact set per operation+status is listed in the response's x-error-codes extension."
+          },
+          "message": {
+            "type": "string"
+          }
         }
       }
     }

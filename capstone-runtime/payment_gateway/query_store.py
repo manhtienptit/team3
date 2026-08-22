@@ -21,7 +21,7 @@ class QueryStore:
             return None
         return {
             "id": payment.id,
-            "status": payment.status.value,
+            "status": payment.status.name,
             "amount": payment.amount,
             "card_ref": payment.card_ref,  # last 4 only — never full PAN
             "merchant_id": payment.merchant_id,

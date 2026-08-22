@@ -22,7 +22,7 @@ class VoidPaymentTests(RuntimeTestCase):
         payment_id, _, _ = self.authorized_payment()
         status, body = self.void(payment_id)
         self.assertEqual(status, 200)
-        self.assertEqual(body["status"], "voided")
+        self.assertEqual(body["status"], "Voided")
         self.assertEqual(body["id"], payment_id)
         payment = self.rt.payment_store.load_payment(payment_id)
         self.assertEqual(payment.status.value, "voided")
@@ -70,7 +70,7 @@ class PaymentQueryTests(RuntimeTestCase):
         status, body = self.query(payment_id)
         self.assertEqual(status, 200)
         self.assertEqual(body["id"], payment_id)
-        self.assertEqual(body["status"], "authorized")
+        self.assertEqual(body["status"], "Authorized")
         self.assertEqual(body["amount"], 500000)
         self.assertEqual(len(body["card_ref"]), 4)  # last 4 only
         self.assertNotIn("card", body)  # no full card object
@@ -90,7 +90,7 @@ class PaymentQueryTests(RuntimeTestCase):
         payment_id, _ = self.captured_payment(amount=500000)
         status, body = self.query(payment_id)
         self.assertEqual(status, 200)
-        self.assertEqual(body["status"], "captured")
+        self.assertEqual(body["status"], "Captured")
         self.assertEqual(body["captured_amount"], 500000)
 
     def test_query_after_refund_reflects_amounts(self):
@@ -125,7 +125,7 @@ class ExpiryJobTests(RuntimeTestCase):
     def test_expiry_already_terminal_not_moved(self):
         """Declined payment is not moved by expiry tick."""
         status, body = self.authorize(amount=250_000_000)  # fraud -> declined
-        self.assertEqual(body["status"], "declined")
+        self.assertEqual(body["status"], "Declined")
         self.now["t"] = T0 + AUTH_WINDOW + 1
         expired = self.rt.tick_expiry()
         self.assertEqual(expired, [])
@@ -174,7 +174,7 @@ class CON6TimeoutTests(RuntimeTestCase):
         self.rt.acquirer_host.timeout_next_n = 99  # all calls time out
         status, body = self.authorize(amount=500000)
         self.assertEqual(status, 200)
-        self.assertEqual(body["status"], "failed")
+        self.assertEqual(body["status"], "Failed")
         self.assertEqual(body["decline_reason"], "acquirer_timeout")
         payment = self.rt.payment_store.load_payment(body["id"])
         self.assertEqual(payment.status.value, "failed")
@@ -198,7 +198,7 @@ class CON6TimeoutTests(RuntimeTestCase):
         self.rt.acquirer_host.timeout_next_n = 1  # only first call times out
         status, body = self.authorize(amount=500000)
         self.assertEqual(status, 201)
-        self.assertEqual(body["status"], "authorized")
+        self.assertEqual(body["status"], "Authorized")
         # Two authorize calls: first timed out, second succeeded
         auth_calls = self.acquirer_calls_of("authorize")
         self.assertEqual(len(auth_calls), 2)

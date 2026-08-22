@@ -32,7 +32,7 @@ class ExpiryJob:
                 self._message_queue.publish({
                     "type": "payment.failed",
                     "payment_id": payment.id,
-                    "status": "failed",
+                    "status": "Failed",
                     "amount": payment.amount,
                     "occurred_at": now,
                 })
