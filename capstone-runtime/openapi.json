@@ -1,0 +1,300 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "Payment Gateway API v1",
+    "version": "1.0.0",
+    "description": "Public contract of the capstone sitting (I-11 slice only). Source of truth: Lab 1 index (I-1 contract 'REST API — OpenAPI 3.0 specification for /v1/payments endpoints'), Lab 3 §4 contract register, Lab 10 sequences. The runtime is the collapsed in-process build in this repo (see name-map.md); status codes and bodies below match it exactly — asserted by tests/test_openapi_contract.py. No real host is called: AcquirerHost and Merchant Platform are in-process mocks (I-3 mocked). Void Payment and Payment Query are N/A (not I-11 use cases) and intentionally absent.",
+    "contact": { "name": "Team 3 — Dev R: Kim Duc Minh / SA A: Nguyen Quang Huy / Test C: Tran Quoc Dat" }
+  },
+  "tags": [
+    { "name": "payments", "description": "I-11 use cases: Authorize Payment, Capture Payment, Refund Payment" }
+  ],
+  "paths": {
+    "/v1/payments": {
+      "post": {
+        "tags": ["payments"],
+        "operationId": "authorizePayment",
+        "summary": "Authorize Payment (I-11 use case 1)",
+        "description": "Happy path: idempotency check -> Fraud Gate pass -> AcquirerHost approve -> persist Authorized -> publish payment.authorized (webhook delivered async). Named alt (I-11): Fraud blocks -> Declined, no acquirer call (CON.3, G5). capture:true runs the Direct Charge variant (I-6: Pending -> Captured). A duplicate idempotency key replays the original status and body (CON.2).",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/AuthorizeRequest" }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Authorized (I-6: Pending -> Authorized). A duplicate key replays this original 201 response.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["id", "status", "auth_code"],
+                  "properties": {
+                    "id": { "type": "string" },
+                    "status": { "type": "string", "enum": ["authorized"] },
+                    "auth_code": { "type": "string" }
+                  }
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "Declined — named alt 'Fraud blocks' (CON.3, decline_reason 'fraud_rule') or issuer decline; or Captured — Direct Charge variant (capture:true). Duplicate keys replay whichever original response was cached.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["id", "status"],
+                  "properties": {
+                    "id": { "type": "string" },
+                    "status": { "type": "string", "enum": ["declined", "captured"] },
+                    "decline_reason": { "type": "string", "enum": ["fraud_rule", "issuer_decline"] },
+                    "fraud_rule": { "type": "string", "enum": ["FRAUD-01", "FRAUD-02", "FRAUD-03", "FRAUD-04", "FRAUD-05"] },
+                    "captured_amount": { "type": "integer" }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "invalid_request (CON.2 missing/oversized idempotency key or missing field), invalid_amount (CON.1 range 10,000–500,000,000 VND), invalid_card (Luhn/expiry).",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Error" , "x-error-codes": ["invalid_request", "invalid_amount", "invalid_card"]}
+              }
+            }
+          },
+          "409": {
+            "description": "Concurrent request with the same idempotency key still in flight (CON.2; the 5s wait is collapsed — see name-map.md).",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Error", "x-error-codes": ["idempotency_conflict"] }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/payments/{payment_id}/capture": {
+      "post": {
+        "tags": ["payments"],
+        "operationId": "capturePayment",
+        "summary": "Capture Payment (I-11 use case 2)",
+        "description": "Happy path: idempotency check -> validate (Authorized + not expired, amount <= authorized) -> AcquirerHost capture -> persist Captured -> publish payment.captured. Named alt (I-11): Auth expired -> 409 authorization_expired (CON.4, G5). amount < authorized runs the Partial Capture variant (remainder voided, Lab 10 §2). Fraud Gate is never on this path (CON.3).",
+        "parameters": [
+          { "name": "payment_id", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/CaptureRequest" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Captured (I-6: Authorized -> Captured). remainder_voided is true on the Partial Capture variant.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["id", "status", "captured_amount", "remainder_voided"],
+                  "properties": {
+                    "id": { "type": "string" },
+                    "status": { "type": "string", "enum": ["captured"] },
+                    "captured_amount": { "type": "integer" },
+                    "remainder_voided": { "type": "boolean" }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "invalid_request (missing field / CON.2 key) or amount_exceeds_authorized (Lab 10 §2 alt).",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Error", "x-error-codes": ["invalid_request", "amount_exceeds_authorized"] }
+              }
+            }
+          },
+          "404": {
+            "description": "Unknown payment id.",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Error", "x-error-codes": ["payment_not_found"] }
+              }
+            }
+          },
+          "409": {
+            "description": "authorization_expired (named alt, CON.4 — no acquirer call, state unchanged), invalid_state_transition (status is not Authorized), idempotency_conflict (CON.2).",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Error", "x-error-codes": ["authorization_expired", "invalid_state_transition", "idempotency_conflict"] }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/payments/{payment_id}/refund": {
+      "post": {
+        "tags": ["payments"],
+        "operationId": "refundPayment",
+        "summary": "Refund Payment (I-11 use case 3)",
+        "description": "Happy path: idempotency check -> validate (Captured + amount <= refundable + refundCount < 10 + within 180d) -> AcquirerHost refund -> persist (partial stays Captured, full becomes Refunded) -> publish payment.refunded. Named alt (I-11): Max refunds exceeded -> 400 max_refunds_exceeded (CON.5, G5). Fraud Gate is never on this path (CON.3).",
+        "parameters": [
+          { "name": "payment_id", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/RefundRequest" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Partial refund keeps status Captured (I-6: Captured -> Captured, refundedAmount updated); full refund reaches terminal Refunded (I-6: Captured -> Refunded).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["id", "status", "refunded_amount", "refund_count"],
+                  "properties": {
+                    "id": { "type": "string" },
+                    "status": { "type": "string", "enum": ["captured", "refunded"] },
+                    "refunded_amount": { "type": "integer" },
+                    "refund_count": { "type": "integer" }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "invalid_request (missing field / CON.2 key), max_refunds_exceeded (named alt, CON.5 — no acquirer call, counts unchanged), amount_exceeds_refundable (Lab 10 §3 alt).",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Error", "x-error-codes": ["invalid_request", "max_refunds_exceeded", "amount_exceeds_refundable"] }
+              }
+            }
+          },
+          "404": {
+            "description": "Unknown payment id.",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Error", "x-error-codes": ["payment_not_found"] }
+              }
+            }
+          },
+          "409": {
+            "description": "refund_window_expired (CON.5 180-day window), invalid_state_transition (status is not Captured), idempotency_conflict (CON.2).",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Error", "x-error-codes": ["refund_window_expired", "invalid_state_transition", "idempotency_conflict"] }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/webhooks": {
+      "post": {
+        "tags": ["payments"],
+        "operationId": "receiveWebhook",
+        "summary": "Webhook delivery contract (Lab 3 §4 register: Webhook Service -> Merchant Platform)",
+        "description": "Implemented by Merchant Platform (I-3, mocked by MerchantPlatformFake), called by Webhook Service after the Message Queue is drained — never inside the synchronous API response (I-5). Retry per CON.7: 7 attempts on the 1m/5m/30m/2h/12h/24h schedule (delays are labels in the collapsed build), then the event is recorded failed_delivery. This operation is the merchant-facing delivery contract, not a route on Payment Gateway.",
+        "parameters": [
+          { "name": "X-Signature", "in": "header", "required": true, "description": "HMAC-SHA256 hex digest of the raw body, keyed with the simulated webhook secret (mock list, README).", "schema": { "type": "string" } }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/WebhookEvent" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Delivery accepted. Exhausted retries are recorded as failed_delivery Webhook Event rows by Webhook Service (CON.7) — no extra status is invented here.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["received"],
+                  "properties": {
+                    "received": { "type": "boolean" }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "AuthorizeRequest": {
+        "type": "object",
+        "required": ["amount", "card", "idempotency_key"],
+        "properties": {
+          "amount": { "type": "integer", "minimum": 10000, "maximum": 500000000, "description": "VND, CON.1." },
+          "card": {
+            "type": "object",
+            "required": ["number", "exp_month", "exp_year"],
+            "properties": {
+              "number": { "type": "string", "description": "PAN; Luhn-checked. Only the last 4 digits are persisted (card_ref)." },
+              "exp_month": { "type": "integer", "minimum": 1, "maximum": 12 },
+              "exp_year": { "type": "integer" },
+              "bin_country": { "type": "string", "description": "Default 'VN'; BIN country != VN blocks (FRAUD-04, CON.8)." }
+            }
+          },
+          "idempotency_key": { "type": "string", "minLength": 1, "maxLength": 64, "description": "CON.2: required on all POST, 48h TTL (TTL is a label in the collapsed build)." },
+          "capture": { "type": "boolean", "default": false, "description": "true = Direct Charge variant (I-6: Pending -> Captured)." },
+          "merchant_id": { "type": "string", "description": "Simulated merchant reference; defaults to 'mer_3' (ASSUMPTION row in name-map.md)." }
+        }
+      },
+      "CaptureRequest": {
+        "type": "object",
+        "required": ["amount", "idempotency_key"],
+        "properties": {
+          "amount": { "type": "integer", "description": "Capture amount; must not exceed the authorized amount." },
+          "idempotency_key": { "type": "string", "minLength": 1, "maxLength": 64 }
+        }
+      },
+      "RefundRequest": {
+        "type": "object",
+        "required": ["amount", "idempotency_key"],
+        "properties": {
+          "amount": { "type": "integer", "description": "Refund amount; must not exceed capturedAmount - refundedAmount." },
+          "idempotency_key": { "type": "string", "minLength": 1, "maxLength": 64 }
+        }
+      },
+      "WebhookEvent": {
+        "type": "object",
+        "required": ["type", "payment_id", "status", "amount", "occurred_at"],
+        "properties": {
+          "type": { "type": "string", "enum": ["payment.authorized", "payment.declined", "payment.captured", "payment.refunded"] },
+          "payment_id": { "type": "string" },
+          "status": { "type": "string", "enum": ["authorized", "declined", "captured", "refunded"] },
+          "amount": { "type": "integer" },
+          "occurred_at": { "type": "number" }
+        }
+      },
+      "Error": {
+        "type": "object",
+        "required": ["error", "message"],
+        "properties": {
+          "error": { "type": "string", "description": "Machine-readable code; the exact set per operation+status is listed in the response's x-error-codes extension." },
+          "message": { "type": "string" }
+        }
+      }
+    }
+  }
+}

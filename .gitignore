@@ -1,0 +1,7 @@
+# Python bytecode cache — auto-generated, never commit
+__pycache__/
+*.py[cod]
+
+# Virtual environments
+.venv/
+venv/
