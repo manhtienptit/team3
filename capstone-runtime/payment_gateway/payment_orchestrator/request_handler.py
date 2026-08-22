@@ -63,7 +63,7 @@ class RequestHandler:
             self.order_log.append("fraud_blocked")
             payment.mark_declined("fraud_rule", fraud_rule=block.rule_id)
             self.persistence.persist_new(payment)
-            response = (200, {"id": payment.id, "status": "declined",
+            response = (200, {"id": payment.id, "status": "Declined",
                               "decline_reason": "fraud_rule",
                               "fraud_rule": block.rule_id})
             self._finish(body["idempotency_key"], response, payment,
@@ -90,7 +90,7 @@ class RequestHandler:
         if decision != "approved":
             payment.mark_declined("issuer_decline")
             self.persistence.persist_new(payment)
-            response = (200, {"id": payment.id, "status": "declined",
+            response = (200, {"id": payment.id, "status": "Declined",
                               "decline_reason": "issuer_decline"})
             self._finish(body["idempotency_key"], response, payment,
                          "payment.declined")
@@ -101,7 +101,7 @@ class RequestHandler:
             self.state_machine.validate_transition("Pending", "Captured")
             payment.mark_captured(amount, self.clock())
             self.persistence.persist_new(payment)
-            response = (200, {"id": payment.id, "status": "captured",
+            response = (200, {"id": payment.id, "status": "Captured",
                               "captured_amount": amount})
             self._finish(body["idempotency_key"], response, payment,
                          "payment.captured")
@@ -111,7 +111,7 @@ class RequestHandler:
         self.state_machine.validate_transition("Pending", "Authorized")
         payment.mark_authorized(auth_code, expires_at)
         self.persistence.persist_new(payment)
-        response = (201, {"id": payment.id, "status": "authorized",
+        response = (201, {"id": payment.id, "status": "Authorized",
                           "auth_code": auth_code})
         self._finish(body["idempotency_key"], response, payment,
                      "payment.authorized")
@@ -146,7 +146,7 @@ class RequestHandler:
             self.acquirer.void(payment.id, payment.amount - amount)
             payment.remainder_voided = True
         self.persistence.save(payment)
-        response = (200, {"id": payment.id, "status": "captured",
+        response = (200, {"id": payment.id, "status": "Captured",
                           "captured_amount": payment.captured_amount,
                           "remainder_voided": payment.remainder_voided})
         self._finish(body["idempotency_key"], response, payment,
@@ -211,7 +211,7 @@ class RequestHandler:
         self.state_machine.validate_transition("Captured", prospective_status)
         payment.apply_refund(amount)
         self.persistence.save(payment)
-        response = (200, {"id": payment.id, "status": payment.status.value,
+        response = (200, {"id": payment.id, "status": payment.status.name,
                           "refunded_amount": payment.refunded_amount,
                           "refund_count": payment.refund_count})
         self._finish(body["idempotency_key"], response, payment,

@@ -34,7 +34,7 @@
                   "required": ["id", "status", "auth_code"],
                   "properties": {
                     "id": { "type": "string" },
-                    "status": { "type": "string", "enum": ["authorized"] },
+                    "status": { "type": "string", "enum": ["Authorized"] },
                     "auth_code": { "type": "string" }
                   }
                 }
@@ -150,7 +150,7 @@
                   "required": ["id", "status", "captured_amount", "remainder_voided"],
                   "properties": {
                     "id": { "type": "string" },
-                    "status": { "type": "string", "enum": ["captured"] },
+                    "status": { "type": "string", "enum": ["Captured"] },
                     "captured_amount": { "type": "integer" },
                     "remainder_voided": { "type": "boolean" }
                   }
@@ -280,7 +280,7 @@
                   "required": ["id", "status", "refunded_amount", "refund_count"],
                   "properties": {
                     "id": { "type": "string" },
-                    "status": { "type": "string", "enum": ["captured", "refunded"] },
+                    "status": { "type": "string", "enum": ["Captured", "Refunded"] },
                     "refunded_amount": { "type": "integer" },
                     "refund_count": { "type": "integer" }
                   }

@@ -29,7 +29,7 @@ class I5HardRuleTests(RuntimeTestCase):
         self.rt.acquirer_host.calls.clear()
         status, body = self.authorize(amount=250_000_000, key="skip-attempt")
         self.assertEqual(status, 201)  # cached original response replayed
-        self.assertEqual(body["status"], "authorized")
+        self.assertEqual(body["status"], "Authorized")
         self.assertEqual(self.rt.acquirer_host.calls, [])
         self.assertEqual(self.rt.request_handler.fraud_gate.evaluations, 1)
 
@@ -47,7 +47,7 @@ class I5HardRuleTests(RuntimeTestCase):
         self.rt.acquirer_host.calls.clear()
         status, body = self.authorize(amount=190_000_000, card=card)
         self.assertEqual(status, 200)
-        self.assertEqual(body["status"], "declined")
+        self.assertEqual(body["status"], "Declined")
         self.assertEqual(body["fraud_rule"], "FRAUD-05")
         self.assertEqual(self.rt.acquirer_host.calls, [])
 

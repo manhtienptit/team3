@@ -13,7 +13,7 @@ Layer(s):   Delivery
 As-Is | To-Be | Transition:  To-Be
 Owner:      Role Dev  Name Kim Đức Minh
 RACI:       R Dev  A SA (Nguyễn Quang Huy)  C Test, BA  I Ops
-Version:    v1.0  Date 2026-08-20  Status Draft
+Version:    v1.0  Date 2026-08-20  Status Approved
 Legend:      → sync; --→ async; alt = exception; note = CON.*; component modules inside Payment Orchestrator only
 RACI legend: R = draws · A = approves · C = consulted · I = informed
 Scope:      in-scope: Authorize Payment use case (I-11) / out-of-scope: capture, void, refund
@@ -184,7 +184,7 @@ Layer(s):   Delivery
 As-Is | To-Be | Transition:  To-Be
 Owner:      Role Dev  Name Kim Đức Minh
 RACI:       R Dev  A SA (Nguyễn Quang Huy)  C Test, BA  I Ops
-Version:    v1.0  Date 2026-08-20  Status Draft
+Version:    v1.0  Date 2026-08-20  Status Approved
 Legend:      → sync; alt = exception; component modules inside Payment Orchestrator only
 RACI legend: R = draws · A = approves · C = consulted · I = informed
 Scope:      in-scope: Capture Payment use case (I-11) / out-of-scope: authorize, void, refund
@@ -301,7 +301,7 @@ Layer(s):   Delivery
 As-Is | To-Be | Transition:  To-Be
 Owner:      Role Dev  Name Kim Đức Minh
 RACI:       R Dev  A SA (Nguyễn Quang Huy)  C Test, BA  I Ops
-Version:    v1.0  Date 2026-08-20  Status Draft
+Version:    v1.0  Date 2026-08-20  Status Approved
 Legend:      → sync; alt = exception; component modules inside Payment Orchestrator only
 RACI legend: R = draws · A = approves · C = consulted · I = informed
 Scope:      in-scope: Refund Payment use case (I-11) / out-of-scope: authorize, capture, void

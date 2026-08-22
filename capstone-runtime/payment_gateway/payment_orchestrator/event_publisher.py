@@ -10,7 +10,7 @@ class EventPublisher:
         self.queue.publish({
             "type": event_type,             # payment.authorized / .declined / .captured / .refunded
             "payment_id": payment.id,
-            "status": payment.status.value,
+            "status": payment.status.name,
             "amount": payment.amount,
             "occurred_at": payment.captured_at or payment.created_at,
         })
