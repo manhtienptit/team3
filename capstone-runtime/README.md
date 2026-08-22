@@ -77,5 +77,5 @@ the running API in both directions.
 | Role | Person | Sign-off |
 |---|---|---|
 | Dev (R) | Kim Đức Minh | built; all tests green 2026-08-22 |
-| SA (A) | Nguyễn Quang Huy | ☐ accepted the runtime against the after pack |
+| SA (A) | Nguyễn Quang Huy | ☑ accepted the runtime against the after pack — 2026-08-22 |
 | Test (C) | Trần Quốc Đạt | ☐ test report reviewed |
