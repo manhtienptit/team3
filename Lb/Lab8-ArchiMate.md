@@ -14,7 +14,7 @@ Layer(s):   Strategy
 As-Is | To-Be | Transition:  To-Be
 Owner:      Role EA  Name Ninh Mạnh Tiến
 RACI:       R EA  A Owner  C SA, BA, Sec  I Dev, Test, Ops
-Version:    v1.0  Date 2026-08-20  Status Draft
+Version:    v1.0  Date 2026-08-20  Status Approved
 Legend:      ──▶ realization; ──▷ influence; ──association
 RACI legend: R = draws · A = approves · C = consulted · I = informed
 Scope:      in-scope: Goal, Outcome, Constraints (CON.1–CON.8) / out-of-scope: container internals
@@ -99,7 +99,7 @@ Layer(s):   Business
 As-Is | To-Be | Transition:  To-Be
 Owner:      Role BA  Name Ninh Mạnh Tiến
 RACI:       R BA  A Owner  C SA, Sec  I Dev, Test
-Version:    v1.0  Date 2026-08-20  Status Draft
+Version:    v1.0  Date 2026-08-20  Status Approved
 Legend:      → flow; ◆ decision (CON.* labeled); ○ event
 RACI legend: R = draws · A = approves · C = consulted · I = informed
 Scope:      in-scope: authorization happy path (I-5) with CON.* branches / out-of-scope: capture, void, refund detail
@@ -185,7 +185,7 @@ Layer(s):   Application
 As-Is | To-Be | Transition:  To-Be
 Owner:      Role SA  Name Nguyễn Quang Huy
 RACI:       R SA  A EA  C DA, Sec  I Dev, Test
-Version:    v1.0  Date 2026-08-20  Status Draft
+Version:    v1.0  Date 2026-08-20  Status Approved
 Legend:      ─── flow; names = I-4 containers (same strings as C4 Container)
 RACI legend: R = draws · A = approves · C = consulted · I = informed
 Scope:      in-scope: internal containers cooperation / out-of-scope: UML messages, C4 notation
@@ -251,7 +251,7 @@ Layer(s):   Technology
 As-Is | To-Be | Transition:  To-Be
 Owner:      Role Ops  Name Nguyễn Quang Huy
 RACI:       R Ops  A SA  C Sec  I Dev, Test
-Version:    v1.0  Date 2026-08-20  Status Draft
+Version:    v1.0  Date 2026-08-20  Status Approved
 Legend:      ─── deployed on; locations from I-9; no forbidden path
 RACI legend: R = draws · A = approves · C = consulted · I = informed
 Scope:      in-scope: deployment locations (I-9) / out-of-scope: channel writing core DB (forbidden)

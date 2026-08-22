@@ -91,7 +91,7 @@ Layer(s):   Strategy / Business / App / Tech
 As-Is | To-Be | Transition:  _______________
 Owner:      Role ________  Name ____________
 RACI:       R ____  A ____  C ____  I ____
-Version:    v____  Date ________  Status Draft|Review|Approved
+Version:    v____  Date ________  Status Approved|Review|Approved
 Legend:     relationships listed
 RACI legend: R = draws · A = approves · C = consulted · I = informed
 Scope:      in-scope / out-of-scope

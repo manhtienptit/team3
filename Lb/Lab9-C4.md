@@ -13,7 +13,7 @@ Layer(s):   Application
 As-Is | To-Be | Transition:  To-Be
 Owner:      Role SA  Name Nguyễn Quang Huy
 RACI:       R SA  A Owner  C BA, Sec  I Dev, Test, Ops
-Version:    v1.0  Date 2026-08-20  Status Draft
+Version:    v1.0  Date 2026-08-20  Status Approved
 Legend:      [Person] = stick figure; [System] = box; [External] = dashed box; → relationship (what happens)
 RACI legend: R = draws · A = approves · C = consulted · I = informed
 Scope:      in-scope: system-in-focus + actors + externals / out-of-scope: containers, databases, pods, event buses
@@ -86,7 +86,7 @@ Layer(s):   Application
 As-Is | To-Be | Transition:  To-Be
 Owner:      Role SA  Name Nguyễn Quang Huy
 RACI:       R SA  A EA  C DA, Sec, Dev, Ops  I Test
-Version:    v1.0  Date 2026-08-20  Status Draft
+Version:    v1.0  Date 2026-08-20  Status Approved
 Legend:      [Container] = box; [External] = dashed; ─── sync; ═══ async; protocol labeled
 RACI legend: R = draws · A = approves · C = consulted · I = informed
 Scope:      in-scope: I-4 containers + externals; sync/async labeled / out-of-scope: container internals
@@ -182,7 +182,7 @@ Layer(s):   Application (one container drill-down)
 As-Is | To-Be | Transition:  To-Be
 Owner:      Role Dev  Name Kim Đức Minh
 RACI:       R Dev  A SA  C DA, Sec  I Test, Ops
-Version:    v1.0  Date 2026-08-20  Status Draft
+Version:    v1.0  Date 2026-08-20  Status Approved
 Legend:      [Component] = box inside container; [Neighbour] = grey box (black-box); → dependency
 RACI legend: R = draws · A = approves · C = consulted · I = informed
 Scope:      in-scope: internals of Payment Orchestrator ONLY / out-of-scope: other containers (shown as black boxes)
