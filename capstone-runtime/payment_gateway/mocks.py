@@ -6,6 +6,7 @@ AcquirerHost -> NAPAS Switch -> Issuing Bank chain (I-3 names stay labels).
 
 import hashlib
 import hmac
+import os
 
 
 class AcquirerHostStub:
@@ -42,7 +43,12 @@ class MerchantPlatformFake:
 
     def __init__(self):
         self.deliveries = []
-        self.secret = b"simulated-webhook-secret"  # simulated, not production
+        # C5: never a literal secret in source, even a simulated one -
+        # read from the environment; the fallback is the documented
+        # simulated value (ASSUMPTION row, name-map.md §4) for local runs
+        # and tests, where WEBHOOK_SECRET is not set.
+        self.secret = os.environ.get(
+            "WEBHOOK_SECRET", "simulated-webhook-secret").encode()
         self.fail_first_n = 0  # test scripting for CON.7 retry
 
     def receive_webhook(self, payload, signature):

@@ -34,7 +34,7 @@
                   "required": ["id", "status", "auth_code"],
                   "properties": {
                     "id": { "type": "string" },
-                    "status": { "type": "string", "enum": ["authorized"] },
+                    "status": { "type": "string", "enum": ["Authorized"] },
                     "auth_code": { "type": "string" }
                   }
                 }
@@ -50,7 +50,7 @@
                   "required": ["id", "status"],
                   "properties": {
                     "id": { "type": "string" },
-                    "status": { "type": "string", "enum": ["declined", "captured"] },
+                    "status": { "type": "string", "enum": ["Declined", "Captured"] },
                     "decline_reason": { "type": "string", "enum": ["fraud_rule", "issuer_decline"] },
                     "fraud_rule": { "type": "string", "enum": ["FRAUD-01", "FRAUD-02", "FRAUD-03", "FRAUD-04", "FRAUD-05"] },
                     "captured_amount": { "type": "integer" }
@@ -105,7 +105,7 @@
                   "required": ["id", "status", "captured_amount", "remainder_voided"],
                   "properties": {
                     "id": { "type": "string" },
-                    "status": { "type": "string", "enum": ["captured"] },
+                    "status": { "type": "string", "enum": ["Captured"] },
                     "captured_amount": { "type": "integer" },
                     "remainder_voided": { "type": "boolean" }
                   }
@@ -167,7 +167,7 @@
                   "required": ["id", "status", "refunded_amount", "refund_count"],
                   "properties": {
                     "id": { "type": "string" },
-                    "status": { "type": "string", "enum": ["captured", "refunded"] },
+                    "status": { "type": "string", "enum": ["Captured", "Refunded"] },
                     "refunded_amount": { "type": "integer" },
                     "refund_count": { "type": "integer" }
                   }
@@ -282,7 +282,7 @@
         "properties": {
           "type": { "type": "string", "enum": ["payment.authorized", "payment.declined", "payment.captured", "payment.refunded"] },
           "payment_id": { "type": "string" },
-          "status": { "type": "string", "enum": ["authorized", "declined", "captured", "refunded"] },
+          "status": { "type": "string", "enum": ["Authorized", "Declined", "Captured", "Refunded"] },
           "amount": { "type": "integer" },
           "occurred_at": { "type": "number" }
         }

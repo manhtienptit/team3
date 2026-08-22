@@ -23,7 +23,7 @@ class AuthorizePaymentTests(RuntimeTestCase):
         """I-6 #1: Pending -> Authorized. Persisted, event on queue (async)."""
         status, body = self.authorize(amount=500000)
         self.assertEqual(status, 201)
-        self.assertEqual(body["status"], "authorized")
+        self.assertEqual(body["status"], "Authorized")
         self.assertTrue(body["auth_code"])
         payment = self.rt.payment_store.load_payment(body["id"])
         self.assertEqual(payment.status.value, "authorized")
@@ -38,7 +38,7 @@ class AuthorizePaymentTests(RuntimeTestCase):
         performed by Fraud Gate (Payment Orchestrator)."""
         status, body = self.authorize(amount=250_000_000)  # > FRAUD-02 limit
         self.assertEqual(status, 200)
-        self.assertEqual(body["status"], "declined")
+        self.assertEqual(body["status"], "Declined")
         self.assertEqual(body["decline_reason"], "fraud_rule")
         self.assertEqual(body["fraud_rule"], "FRAUD-02")
         payment = self.rt.payment_store.load_payment(body["id"])
@@ -52,7 +52,7 @@ class AuthorizePaymentTests(RuntimeTestCase):
         Pending -> Captured in one operation."""
         status, body = self.authorize(amount=500000, capture=True)
         self.assertEqual(status, 200)
-        self.assertEqual(body["status"], "captured")
+        self.assertEqual(body["status"], "Captured")
         self.assertEqual(body["captured_amount"], 500000)
         payment = self.rt.payment_store.load_payment(body["id"])
         self.assertEqual(payment.status.value, "captured")
@@ -70,7 +70,7 @@ class AuthorizePaymentTests(RuntimeTestCase):
         self.rt.request_handler.acquirer.acquirer_host = DecliningAcquirerHost()
         status, body = self.authorize()
         self.assertEqual(status, 200)
-        self.assertEqual(body["status"], "declined")
+        self.assertEqual(body["status"], "Declined")
         self.assertEqual(body["decline_reason"], "issuer_decline")
         payment = self.rt.payment_store.load_payment(body["id"])
         self.assertEqual(payment.status.value, "declined")
@@ -108,7 +108,7 @@ class CapturePaymentTests(RuntimeTestCase):
         payment_id, _, _ = self.authorized_payment()
         status, body = self.capture(payment_id, amount=500000)
         self.assertEqual(status, 200)
-        self.assertEqual(body["status"], "captured")
+        self.assertEqual(body["status"], "Captured")
         self.assertEqual(body["captured_amount"], 500000)
         self.assertFalse(body["remainder_voided"])
         payment = self.rt.payment_store.load_payment(payment_id)
@@ -171,7 +171,7 @@ class RefundPaymentTests(RuntimeTestCase):
         payment_id, _ = self.captured_payment(amount=500000)
         status, body = self.refund(payment_id, amount=100000)
         self.assertEqual(status, 200)
-        self.assertEqual(body["status"], "captured")
+        self.assertEqual(body["status"], "Captured")
         self.assertEqual(body["refunded_amount"], 100000)
         self.assertEqual(body["refund_count"], 1)
         payment = self.rt.payment_store.load_payment(payment_id)
@@ -182,7 +182,7 @@ class RefundPaymentTests(RuntimeTestCase):
         payment_id, _ = self.captured_payment(amount=500000)
         status, body = self.refund(payment_id, amount=500000)
         self.assertEqual(status, 200)
-        self.assertEqual(body["status"], "refunded")
+        self.assertEqual(body["status"], "Refunded")
         payment = self.rt.payment_store.load_payment(payment_id)
         self.assertEqual(payment.status.value, "refunded")
         from payment_gateway.payment import TERMINAL_STATES
