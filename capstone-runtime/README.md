@@ -73,7 +73,7 @@ boundaries inside the process. Sync = direct in-process call; async =
 
 Extension adds:
 - **Query Store** — in-memory read model of Payment Store (Database Tier read-replica)
-- **Expiry Job** — in-process `tick(now)` (Worker Tier)
+- **Expiry Job** — in-process `tick(now)` (Scheduler)
 - **Rate Limiter** — in `APIGateway` (API Gateway I-4 named responsibility)
 
 Lab 1 **out-of-scope** items remain out: Tokenization, 3DS, KYC, etc.
@@ -101,7 +101,7 @@ Lab 1 **out-of-scope** items remain out: Tokenization, 3DS, KYC, etc.
 1. **I-1 goal** — exact Lab 1 strings
 2. **One I-11 / Lab 9 sequence on screen** — Payment Query or Expiry, Lab 10 names
 3. **Live Query happy path** — GET → 200 with card_ref (last 4)
-4. **Live Void happy path** — POST → 200 voided
+4. **Live Void happy path** — POST → 200 Voided
 5. **Live Expiry Job** — tick → Authorized → Failed
 6. **Live CON.6 timeout** — acquirer exhaust → Pending → Failed (same ref)
 7. **Live named security attempt** — S8 Query Store write → PermissionError
@@ -114,6 +114,6 @@ the drift test pins the document to the running API in both directions.
 
 | Role | Person | Sign-off |
 |---|---|---|
-| Dev (R) | Kim Đức Minh | built; all 78 tests green 2026-08-23 |
-| SA (A) | Nguyễn Quang Huy | ☑ accepted the extended runtime against the after pack — 2026-08-23 |
-| Test (C) | Trần Quốc Đạt | ☑ test report reviewed — 78 pass, 0 fail — 2026-08-23 |
+| Dev (R) | Kim Đức Minh | built; all 100 tests green 2026-08-23 |
+| SA (A) | Nguyễn Quang Huy | ☑ accepted the agent-contract runtime against the after pack — 2026-08-23 |
+| Test (C) | Trần Quốc Đạt | ☑ test report reviewed — 100 pass, 0 fail — 2026-08-23 |

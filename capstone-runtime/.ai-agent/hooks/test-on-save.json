@@ -1,0 +1,16 @@
+{
+  "version": "v1",
+  "hooks": [
+    {
+      "name": "Run Tests on Python File Save",
+      "trigger": "PostFileSave",
+      "description": "Runs the full test suite (78 tests) whenever a Python file is saved, catching regressions immediately",
+      "matcher": "\\.py$",
+      "action": {
+        "type": "command",
+        "command": "cd /Users/admin/Documents/GitHub/team3/capstone-runtime && WEBHOOK_SECRET=test-hook python3 -m unittest discover -s tests -t . 2>&1 | tail -5",
+        "timeout": 30
+      }
+    }
+  ]
+}

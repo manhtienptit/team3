@@ -1,0 +1,15 @@
+{
+  "version": "v1",
+  "hooks": [
+    {
+      "name": "Block Modeling Pack Modification",
+      "trigger": "PreToolUse",
+      "description": "Prevents any modification to modeling pack files - capstone rule: before pack is archive",
+      "matcher": "Lb/|before/|lab7",
+      "action": {
+        "type": "command",
+        "command": "echo \"BLOCKED: Cannot modify modeling packs (Lb/, before/, Lab 7). Implementation must stay in capstone-runtime/.\" >&2; exit 2"
+      }
+    }
+  ]
+}

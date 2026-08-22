@@ -1,0 +1,15 @@
+{
+  "version": "v1",
+  "hooks": [
+    {
+      "name": "Verify Lab 1 Title Case Spelling",
+      "trigger": "PreToolUse",
+      "description": "Ensures all code writes use Lab 1 Title Case for status values and no hardcoded secrets",
+      "matcher": "fs_write|str_replace",
+      "action": {
+        "type": "agent",
+        "prompt": "Before writing this code, verify that any status string in response bodies (dicts with \"status\" key) uses Lab 1 Title Case: Authorized, Declined, Captured, Voided, Refunded, Failed, Pending. If you see lowercase status values like \"authorized\" or \"declined\" in a response dict, fix them to Title Case before proceeding. Also verify no WEBHOOK_SECRET default is hardcoded."
+      }
+    }
+  ]
+}

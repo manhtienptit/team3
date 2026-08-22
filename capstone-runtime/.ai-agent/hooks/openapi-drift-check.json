@@ -1,0 +1,16 @@
+{
+  "version": "v1",
+  "hooks": [
+    {
+      "name": "OpenAPI Drift Check",
+      "trigger": "PostFileSave",
+      "description": "Runs OpenAPI contract drift tests when openapi.json is saved, ensuring G4 consistency",
+      "matcher": "openapi\\\\.json$",
+      "action": {
+        "type": "command",
+        "command": "cd /Users/admin/Documents/GitHub/team3/capstone-runtime && WEBHOOK_SECRET=test-hook python3 -m unittest tests.test_openapi_contract -v 2>&1 | tail -10",
+        "timeout": 15
+      }
+    }
+  ]
+}
