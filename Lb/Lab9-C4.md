@@ -192,7 +192,7 @@ Scope:      in-scope: internals of Payment Orchestrator ONLY / out-of-scope: oth
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────────┐
-│                    Payment Orchestrator (container drill-down)                │
+│                    Payment Orchestrator (container drill-down)              │
 │                                                                             │
 │  ┌──────────────────────┐        ┌─────────────────────┐                    │
 │  │ [API Gateway]        │───────▶│  Request Handler    │                    │
@@ -209,7 +209,7 @@ Scope:      in-scope: internals of Payment Orchestrator ONLY / out-of-scope: oth
 │  └──────────┬──────────┘         └──────────────────────┘                   │
 │             │                                                               │
 │  ┌──────────▼──────────┐                                                    │
-│  │   Fraud Gate        │  evaluates 5 rules in-process, < 50ms (CON.3)       │
+│  │   Fraud Gate        │  evaluates 5 rules in-process, < 50ms (CON.3)      │
 │  │ (fraud module)      │                                                    │
 │  └──────────┬──────────┘                                                    │
 │             │                                                               │
@@ -219,8 +219,8 @@ Scope:      in-scope: internals of Payment Orchestrator ONLY / out-of-scope: oth
 │  └──────────┬──────────┘                                                    │
 │             │                                                               │
 │  ┌──────────▼──────────┐         ┌──────────────────────┐                   │
-│  │  Acquirer Client    │────────▶│ [AcquirerHost] │ (external)       │
-│  │ (30s timeout, retry)│         │  HTTPS — black box    │                   │
+│  │  Acquirer Client    │────────▶│ [AcquirerHost]       │ (external)        │
+│  │ (30s timeout, retry)│         │  HTTPS — black box   │                   │
 │  └──────────┬──────────┘         └──────────────────────┘                   │
 │             │                                                               │
 │  ┌──────────▼──────────┐         ┌──────────────────────┐                   │
