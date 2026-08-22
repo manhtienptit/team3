@@ -38,6 +38,7 @@ No other class, package, route, or error name exists in the runtime. `tests/supp
 
 | I-4 container | Where it lives in the collapsed build | I-9 location it stands for |
 |---|---|---|
+| — (no I-4 container; N/A) | Not built — no TLS termination or reverse proxy exists in a single Python process | Load Balancer (L7) — collapsed into "not applicable"; `api_gateway.APIGateway` is the sync entry point in its place |
 | API Gateway | `api_gateway.APIGateway` (in-process) | Application Tier |
 | Payment Orchestrator (8 modules) | `payment_orchestrator/` package | Application Tier |
 | Idempotency Store | `stores.IdempotencyStore` (in-memory dict) | Cache Tier |

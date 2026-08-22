@@ -36,8 +36,8 @@ class IdempotencyStore:
         self._locks.discard(key)
 
     # Fraud counters (I-7: Fraud Counters live in Idempotency Store)
-    def bump_counter(self, name, window=3600):
-        self._fraud_counters[name] = self._fraud_counters.get(name, 0) + 1
+    def bump_counter(self, name, by=1, window=3600):
+        self._fraud_counters[name] = self._fraud_counters.get(name, 0) + by
         return self._fraud_counters[name]
 
     def get_counter(self, name):

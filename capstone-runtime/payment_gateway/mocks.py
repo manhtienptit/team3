@@ -57,9 +57,7 @@ class MerchantPlatformFake:
                                 "valid_signature": valid})
         return True
 
-    def call_acquirer_directly(self, acquirer):
-        """I-9 forbidden path. Raises: Merchant Platform has no route to
-        AcquirerHost in this landscape (Lab 9 relationship list has none)."""
-        raise PermissionError(
-            "I-9 forbidden path: Merchant Platform must NOT query AcquirerHost"
-            " directly (no such relationship on Lab 9)")
+    # I-9 forbidden path: there is deliberately no method here that reaches
+    # AcquirerHost, and no attribute referencing it. The Lab 9 relationship
+    # list has no Merchant Platform -> AcquirerHost edge, so the absence is
+    # structural, not a guarded call that only raises.

@@ -8,7 +8,6 @@ I-6 state unchanged.
 from .support import RuntimeTestCase, CARD
 
 WEBHOOK_FORBIDDEN = ("I-9 forbidden path: only Persistence Manager")
-MERCHANT_FORBIDDEN = "I-9 forbidden path: Merchant Platform"
 
 
 class I5HardRuleTests(RuntimeTestCase):
@@ -33,6 +32,24 @@ class I5HardRuleTests(RuntimeTestCase):
         self.assertEqual(body["status"], "authorized")
         self.assertEqual(self.rt.acquirer_host.calls, [])
         self.assertEqual(self.rt.request_handler.fraud_gate.evaluations, 1)
+
+    def test_fraud05_daily_cumulative_attempt_to_skip_by_splitting_amount(self):
+        """Attempt to skip FRAUD-05 by splitting one large amount into
+        several sub-threshold authorizations on the same card. The daily
+        counter must accumulate by amount, not by count of transactions —
+        the sixth authorization crosses the 1B VND/day limit and is
+        blocked, even though every single call stays under FRAUD-02's
+        high-value threshold."""
+        card = self.fresh_card()
+        for _ in range(5):
+            status, _ = self.authorize(amount=190_000_000, card=card)
+            self.assertEqual(status, 201)
+        self.rt.acquirer_host.calls.clear()
+        status, body = self.authorize(amount=190_000_000, card=card)
+        self.assertEqual(status, 200)
+        self.assertEqual(body["status"], "declined")
+        self.assertEqual(body["fraud_rule"], "FRAUD-05")
+        self.assertEqual(self.rt.acquirer_host.calls, [])
 
     def test_i5_fraud_gate_never_on_capture_or_refund_paths(self):
         """I-5 / CON.3: fraud module NEVER evaluates on capture/refund."""
@@ -69,13 +86,16 @@ class I9ForbiddenPathTests(RuntimeTestCase):
                 self.rt.webhook_service, payment)
         self.assertIn(WEBHOOK_FORBIDDEN, str(raised.exception))
 
-    def test_i9_merchant_platform_cannot_call_acquirer_directly(self):
-        """I-9 forbidden path attempted: Merchant Platform querying
-        AcquirerHost directly (no such Lab 9 relationship)."""
-        with self.assertRaises(PermissionError) as raised:
-            self.rt.merchant_platform.call_acquirer_directly(
-                self.rt.acquirer_host)
-        self.assertIn(MERCHANT_FORBIDDEN, str(raised.exception))
+    def test_i9_merchant_platform_has_no_route_to_acquirer(self):
+        """I-9 forbidden path attempted: reach AcquirerHost through Merchant
+        Platform. There is no Lab 9 relationship for this, so Merchant
+        Platform holds no attribute or method that reaches it at all — a
+        structural absence, not a guarded call that only raises."""
+        self.assertFalse(hasattr(self.rt.merchant_platform, "acquirer"))
+        self.assertFalse(hasattr(self.rt.merchant_platform, "acquirer_host"))
+        with self.assertRaises(AttributeError):
+            self.rt.merchant_platform.acquirer_host.authorize(
+                "tx", 500000, dict(CARD))
 
 
 class ConstraintTests(RuntimeTestCase):

@@ -46,5 +46,5 @@ class FraudGate:
             raise FraudBlocked("FRAUD-05")
         self.store.bump_counter(f"velocity:card:{card_ref}")
         self.store.bump_counter(f"velocity:merchant:{merchant_id}")
-        self.store.bump_counter(f"daily:card:{card_ref}")
+        self.store.bump_counter(f"daily:card:{card_ref}", by=amount)
         return "pass"

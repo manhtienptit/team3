@@ -86,6 +86,7 @@ class RequestHandler:
 
         if capture:  # Direct Charge: Pending -> Captured (I-6)
             self.acquirer.capture(payment.id, amount)
+            self.state_machine.validate_transition("Pending", "Captured")
             payment.mark_captured(amount, self.clock())
             self.persistence.persist_new(payment)
             response = (200, {"id": payment.id, "status": "captured",
@@ -95,6 +96,7 @@ class RequestHandler:
             return response
 
         expires_at = self.clock() + AUTH_WINDOW_SECONDS
+        self.state_machine.validate_transition("Pending", "Authorized")
         payment.mark_authorized(auth_code, expires_at)
         self.persistence.persist_new(payment)
         response = (201, {"id": payment.id, "status": "authorized",
@@ -163,6 +165,9 @@ class RequestHandler:
 
         self.order_log.append("acquirer_call")
         self.acquirer.refund(payment.id, amount)
+        remaining_after = payment.captured_amount - payment.refunded_amount - amount
+        prospective_status = "Refunded" if remaining_after == 0 else "Captured"
+        self.state_machine.validate_transition("Captured", prospective_status)
         payment.apply_refund(amount)
         self.persistence.save(payment)
         response = (200, {"id": payment.id, "status": payment.status.value,
