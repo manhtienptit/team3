@@ -19,7 +19,7 @@ file was edited to match the code.
 
 ```bash
 cd capstone-runtime
-WEBHOOK_SECRET=test-secret python3 -m unittest discover -s tests -t . -v  # 78 tests
+WEBHOOK_SECRET=test-secret python3 -m unittest discover -s tests -t . -v  # 101 tests
 WEBHOOK_SECRET=demo-secret python3 -m payment_gateway.demo                # 12-minute demo script
 ```
 
@@ -34,7 +34,7 @@ arg). The runtime refuses to start without it — no hardcoded default in source
 |---|---|
 | Runnable runtime (sibling folder) | `payment_gateway/` (composition root: `payment_gateway/runtime.py`) |
 | OpenAPI (committed file — G4) | `openapi.json` |
-| Automated tests | `tests/` (78 tests: I-11 paths, extension paths, G5 compensation, I-5/I-9/S1–S11 security, OpenAPI drift) |
+| Automated tests | `tests/` (101 tests: I-11 paths, extension paths, G5 compensation, I-5/I-9/S1–S11 security, OpenAPI drift, agent contract A1–A10) |
 | Name-identity map (module/package → I-4, collapse + ASSUMPTION rows) | `name-map.md` |
 | Spec-trace (path → OpenAPI operation → test id, G5, G6, N/A) | `spec-trace.md` |
 | I-3 mock list | §"I-3 mocks" below |
@@ -114,6 +114,6 @@ the drift test pins the document to the running API in both directions.
 
 | Role | Person | Sign-off |
 |---|---|---|
-| Dev (R) | Kim Đức Minh | built; all 100 tests green 2026-08-23 |
-| SA (A) | Nguyễn Quang Huy | ☑ accepted the agent-contract runtime against the after pack — 2026-08-23 |
-| Test (C) | Trần Quốc Đạt | ☑ test report reviewed — 100 pass, 0 fail — 2026-08-23 |
+| Dev (R) | Kim Đức Minh | built; all 101 tests green 2026-08-24 |
+| SA (A) | Nguyễn Quang Huy | ☑ accepted the agent-contract runtime against the after pack — 2026-08-24 |
+| Test (C) | Trần Quốc Đạt | ☑ test report reviewed — 101 pass, 0 fail — 2026-08-24 |

@@ -1,0 +1,6 @@
+---
+description: Payment Gateway agent contract — all rules are in AGENTS.md
+globs: ["**/*"]
+---
+
+Follow the contract in `AGENTS.md` (project root). That file defines MUST and MUST NOT rules for any coding agent editing this repository. Do not invent names, use cases, or I-4 containers not listed there.
